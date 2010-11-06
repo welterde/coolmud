@@ -1,0 +1,2399 @@
+\input texinfo   @c -*-texinfo-*-
+
+@comment %**start of header (This is for running Texinfo on a region.)
+@setfilename cooldocs.txt
+@settitle COOLMUD Programmer's Manual
+@smallbook
+@c Uncomment the following line for two-sided printing.
+@setchapternewpage odd
+@paragraphindent 0
+@comment %**end of header (This is for running Texinfo on a region.)
+
+@ifinfo
+@format
+COOLMUD Programmer's Manual 
+				       
+For COOLMUD Version 2.0
+Septermber 1992
+				       
+by Rusty Wright (aka Gus)
+@sp 1
+(This document is a heavily modified version of the LambdaMOO manual by Pavel Curtis.)
+@sp 1
+Copyright @copyright{} 1992 by Rusty Wright.
+@end format
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+@ignore
+Permission is granted to process this file through TeX and print the
+results, provided the printed document carries copying permission notice
+identical to this one except for the removal of this paragraph (this
+paragraph not being relevant to the printed manual).
+
+@end ignore
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions,
+except that this permission notice may be stated in a translation
+approved by the author.
+@format
+@sp 1
+@end format
+@end ifinfo
+
+@titlepage
+@title COOLMUD Programmer's Manual
+@subtitle For COOLMUD Version 2.0
+@subtitle September 1992
+@author by Rusty Wright (aka ``Gus'')
+(This document is heavily modified from the LambdaMOO manual by Pavel Curtis.)
+
+@page
+Copyright @copyright{} 1992 by Rusty Wright.
+
+@vskip 0pt plus 1filll
+
+Copies of the electronic source for this document can be obtained using
+anonymous FTP on the Internet.  At the site @file{ferkel.ucsb.edu} the
+files are @file{pub/mud/CoolMUD/coolmud.*}; several different file
+formats are provided, including Texinfo, plain text, and Postscript.
+
+Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+Permission is granted to copy and distribute modified versions of this
+manual under the conditions for verbatim copying, provided that the
+entire resulting derived work is distributed under the terms of a
+permission notice identical to this one.
+
+Permission is granted to copy and distribute translations of this manual
+into another language, under the above conditions for modified versions,
+except that this permission notice may be stated in a translation
+approved by the author.
+@end titlepage
+
+@unnumbered Introduction
+
+COOLMUD is a network-accessible, multi-user, programmable, interactive
+system designed for the construction of text-based adventure games,
+conferencing systems, and other collaborative software.
+
+Participants (usually referred to as @dfn{players}) connect to COOLMUD
+using @code{telnet} or some other, more specialized, @dfn{client}
+program.  Upon connecting, they are usually presented with a
+@dfn{welcome message} explaining how to either create a new
+@dfn{character} or connect to an existing one.  Characters are the
+embodiment of players in the virtual reality that is COOLMUD.
+
+Having connected to a character, players then give one-line commands
+that are parsed and interpreted by COOLMUD as appropriate.  Such
+commands may cause changes in the virtual reality, for example, changing
+the location of a character, or may simply report something, such as the
+appearance of some object.
+
+The job of interpreting commands is shared between two major
+components in the COOLMUD system: the @dfn{server} and the
+@dfn{database}.  The server is a program, written in a standard
+programming language, that manages the network connections, maintains
+queues of commands and other tasks to be executed, controls all access
+to the database, and executes other programs written in the COOL
+programming language.  The database contains representations of all
+objects in the virtual reality, including the COOL programs the server
+executes to give objects their specific behaviors.
+
+Almost every command is parsed by the server into a call on a COOL
+@dfn{method} that actually does the work.  Thus, programming in the
+COOL language is a central part of making non-trivial extensions to
+the database and thus, the virtual reality.
+
+In the next chapter we'll go over the structure and contents of a
+COOLMUD database.  The following chapter gives a complete description
+of how the server performs its primary duty: parsing the commands
+typed by players.  Next, we'll examine the syntax and semantics of the
+COOL programming language.  Finally, we'll cover the database
+conventions assumed by the server.
+
+@quotation
+@strong{Note:} This manual describes only those aspects of COOLMUD that
+are entirely independent of the contents of the database.  It does not
+describe, for example, the commands or programming interfaces present in
+the COOLMUD database.
+@end quotation
+
+@chapter The COOLMUD database
+
+In this chapter we'll examine in detail the various kinds of data that
+can appear in a COOLMUD database and that, therefore, COOL programs
+can manipulate.  In a few places, we'll refer to the @code{boot}
+database.  This is just one particular COOLMUD database.
+
+@section Values
+
+There are only a few kinds of values that COOL programs can manipulate:
+
+@display
+@itemize @bullet
+@item
+@cindex numbers
+numbers (integers in a specific, large range)
+@item
+@cindex strings
+strings (of characters)
+@item
+@cindex objects
+objects (in the virtual reality)
+@item
+@cindex errors
+errors (arising during program execution)
+@item
+@cindex lists
+lists (of all of the above, including lists)
+@end itemize
+@end display
+
+@cindex numbers
+
+The only @dfn{numbers} that COOL understands are the integers from
+@minus{}2^31 (that is, negative two to the power of 31) up to 2^31
+@minus{} 1 (one less than two to the power of 31); that's from
+@minus{}2147483648 to 2147483647, enough for most purposes.  In COOL
+programs, numbers are written just as you see them here, an optional
+minus sign followed by a sequence of decimal digits.  In particular,
+you may not put commas, periods, or spaces in the middle of large
+numbers, as we sometimes do in natural languages (e.g.,
+`2,147,483,647').
+
+@cindex strings
+
+Character @dfn{strings} are arbitrarily-long sequences of normal, ASCII
+printing characters.  When written as values in a program, strings are
+enclosed in double-quotes, like this:
+
+@example
+"This is a character string."
+@end example
+
+@noindent
+To include a double-quote in the string, precede it with a backslash
+(@samp{\}), like this:
+
+@example
+"His name was \"Leroy\", but nobody ever called him that."
+@end example
+
+@noindent
+Finally, to include a backslash in a string, double it:
+
+@example
+"Some people use backslash ('\\') to mean set difference."
+@end example
+
+@noindent
+COOL strings may not include special ASCII characters like
+carriage-return, line-feed, bell, etc.
+
+@cindex objects
+
+@dfn{Objects} are the backbone of the COOL database and, as such,
+deserve a great deal of discussion; the next section is devoted to
+them.  Every object has a number, unique to that object.  In programs,
+we write a reference to a object by putting a hash mark (@samp{#})
+followed by the object's number, like this:
+
+@example
+#495
+@end example
+
+@noindent
+There is one special object number used for an error value;
+@code{#-1}.
+
+@cindex servers
+
+COOLMUD allows servers to interconnect, and for objects to move
+between servers.  A @dfn{visitor} object is specified just like a
+local object and is appended with an ampersand @samp{@@} and the name
+of the remote server:
+
+@example
+#23@@east
+#13@@unlucky
+@end example
+
+@cindex errors
+
+@dfn{Errors} are, by far, the least frequently used values in COOL.
+In the normal case, when a program attempts an operation that is
+erroneous for some reason (for example, trying to add a number to a
+character string), the server stops running the program and prints an
+error message.  It is possible for a program to stipulate that such
+errors should not stop execution; instead, the server should just let
+the value of the operation be an error value.  The program can then
+test for such a result and take appropriate recovery action.  In
+programs, error values are written as words beginning with @samp{E_}.
+The complete list of error values, along with their associated
+messages, is as follows:
+
+@example
+E_DIV       @r{Division by zero}
+E_FOR       @r{For variable not a list}
+E_INTERNAL  @r{Internal error}
+E_INVIND    @r{Invalid indirection}
+E_MAXREC    @r{Maximum recursion exceeded}
+E_MESSAGE   @r{Message unparseable}
+E_METHODNF  @r{Method not found}
+E_NONE      @r{No error}
+E_OBJNF     @r{Object not found}
+E_PERM      @r{Permission denied}
+E_RANGE     @r{Range error}
+E_SERVERDN  @r{Server down}
+E_SERVERNF  @r{Server not found}
+E_STACKOVR  @r{Stack overflow}
+E_STACKUND  @r{Stack underflow}
+E_TIMEOUT   @r{Timed out}
+E_TYPE      @r{Type mismatch}
+E_VARNF     @r{Variable not found}
+@end example
+
+@ignore
+@c spacing is screwed up
+@display
+@code{E_DIV}       Division by zero
+@code{E_FOR}       For variable not a list
+@code{E_INTERNAL}  Internal error
+@code{E_INVIND}    Invalid indirection
+@code{E_MAXREC}    Maximum recursion exceeded
+@code{E_MESSAGE}   Message unparseable
+@code{E_METHODNF}  Method not found
+@code{E_NONE}      No error
+@code{E_OBJNF}     Object not found
+@code{E_PERM}      Permission denied
+@code{E_RANGE}     Range error
+@code{E_SERVERDN}  Server down
+@code{E_SERVERNF}  Server not found
+@code{E_STACKOVR}  Stack overflow
+@code{E_STACKUND}  Stack underflow
+@code{E_TIMEOUT}   Timed out
+@code{E_TYPE}      Type mismatch
+@code{E_VARNF}     Variable not found
+@end display
+
+@c some items are too long and their text is put on the next line
+@table @code
+@item E_DIV
+Division by zero
+@item E_FOR
+For variable not a list
+@item E_INTERNAL
+Internal error
+@item E_INVIND
+Invalid indirection
+@item E_MAXREC
+Maximum recursion exceeded
+@item E_MESSAGE
+Object not found
+@item E_PERM
+Permission denied
+@item E_RANGE
+Range error
+@item E_SERVERDN
+Server down
+@item E_SERVERNF
+Server not found
+@item E_STACKOVR
+Stack overflow
+@item E_STACKUND
+Stack underflow
+@item E_TIMEOUT
+Timed out
+@item E_TYPE
+Type mismatch
+@item E_VARNF
+Variable not found
+@end table
+@end ignore
+
+@cindex lists
+
+The final kind of value in COOL programs is @dfn{lists}.  A list is a
+sequence of arbitrary COOL values, possibly including other lists.  In
+programs, lists are written with each of the elements in order,
+separated by commas, the whole enclosed in curly braces (@samp{@{} and
+@samp{@}}).  For example, a list of the names of the days of the week
+is written:
+
+@example
+@{"Sunday", "Monday", "Tuesday", "Wednesday",
+ "Thursday", "Friday", "Saturday"@}
+@end example
+
+@noindent
+Note that it doesn't matter that we put a line-break in the middle of
+the list.  This is true in general in COOL: anywhere that a space can
+go, a line-break can go, with the same meaning.  The only exception is
+inside character strings, where line-breaks are not allowed.
+
+@section Objects
+
+@cindex objects
+
+Objects are, in a sense, the whole point of the COOL programming
+language.  They are used to represent objects in the virtual reality;
+for example, players, rooms, exits, and other concrete things.
+
+@findex clone
+@findex destroy
+
+Numbers always exist, in a sense; you have only to write them down in
+order to operate on them.  With objects it is different.  The object
+with number @samp{#958} does not exist just because you write down its
+number.  An explicit operation, the @code{clone()} function described
+later, is required to bring an object into existence.  Symmetrically,
+once created, an object continues to exist until is explicitly destroyed
+by the @code{destroy()} function (also described later).
+
+The identifying number associated with an object is unique to that
+object.  It is assigned when the object is created and will never be
+reused, even if the object is destroyed.  For example, if we create an
+object and it is assigned the number @samp{#1076}, the next object
+created will be assigned @samp{#1077}, even if @samp{#1076} was
+destroyed in the meantime.
+
+@cindex parents
+@cindex variables
+@cindex methods
+
+Every object is made of four pieces that together define its behavior;
+its @dfn{parents}, @dfn{variables}, @dfn{methods}, and @dfn{verbs}.
+
+@subsection Parents
+
+@cindex parents
+@cindex multiple inheritance
+@cindex cloning
+@cindex reparenting
+@findex chparent
+
+Except for the root object (@samp{#1}) all objects have one or more
+parents.  COOLMUD has multiple inheritance, so an object can have more
+than one ``parallel'' parent.  When an object is created, it is cloned
+from some other object.  The child object inherits all of the methods
+and variables from the parents of the object it was cloned from.  The
+object it was cloned from isn't its parent, but it has the same
+parents as that object.  After an object is cloned it can have its
+parents changed by either reprogramming the entire object or by
+calling the built-in @code{chparents()} function.
+
+The parent/child hierarchy is used for classifying objects into
+general classes and then sharing behavior among all members of that
+class.  For example, the @code{boot} database contains an object
+representing a sort of ``generic'' room.  All other rooms are
+@dfn{descendants} (i.e., children or children's children, or ...) of
+that one.  The generic room defines those pieces of behavior that are
+common to all rooms; other may rooms specialize that behavior for
+their own purposes.  The notion of classes and specialization is the
+very essence of what is meant by @dfn{object-oriented} programming.
+
+@subsection Object variables
+
+@cindex object variables
+@cindex inheritance
+@cindex copy-on-write
+
+An object @dfn{variable} is a named ``slot'' in an object that can
+hold an arbitrary COOL value.  An object can have any number of
+variables, and which are declared to be of a certain type.
+
+Objects appear to have variables corresponding to every variable in
+its parents' objects.  To use the jargon of object-oriented
+programming, this is a kind of @dfn{inheritance}.  If some parent
+object has a variable named @code{foo}, then it appears that all of
+its children and thus its children's children, and so on have that
+variable.  We say it ``appears'' to have all of its parents' variables
+because you don't have to declare any variables on a child object that
+are on its parents; when you ask for the value of any of these
+variables the COOLMUD server finds the variable on the nearest parent
+object and returns its value.  But when an object changes the value of
+one of these variables, the object then gets its own permanent copy of
+the variable, which is then changed.  This behavior is typically
+referred to as ``copy-on-write.''
+
+An object may also have a new variable defined only on itself (and its
+descendants).  For example, an object representing a rock might have
+variables indicating its weight, chemical composition, and/or
+pointiness, depending upon how the rock is used in the virtual
+reality.
+
+@cindex methods
+
+Variables on objects can only be read or modified when there are methods
+that provide such access to the variables.  For example, there are often
+methods on objects that provide simple ``read'' access for variables:
+
+@example
+method name
+    return name;
+endmethod
+@end example
+
+@cindex permissions
+
+For modifying variables, methods typically implement some permission
+check to see if the variable can be modified by the @dfn{caller}:
+
+@example
+method set_name
+    if (!(caller in owners))
+        raise(E_PERM);
+    endif
+    name = args[1];
+endmethod /* set_name */
+@end example
+
+In the above example the check is quite simple.  Since methods implement
+the permission scheme, access is completely controlled by them.  It is
+important to note that the COOLMUD server provides no ``override'' on
+variable access; even the wizards can be excluded access to a variable,
+which the above piece of code is an example of.
+
+@subsection Methods
+
+@cindex methods
+
+The other piece making up an object is its @dfn{methods}.  A method is
+a named COOL program that is associated with a particular object.
+Methods are also used to implement commands that a player might type;
+for example, in the @code{boot} database, there is a method on all
+objects representing containers that implements commands of the form
+`put @var{object} in @var{container}'.  COOL methods can also invoke
+methods defined on objects.  Some methods are designed to be used only
+from within COOL code; they do not correspond to any particular player
+command at all.  Thus, methods in COOL are like the `procedures' or
+`functions' found in other programming languages.
+
+@subsubheading Method variables
+
+@cindex method variables
+@cindex variables
+
+Methods can have their own variables.  They are untyped and are local
+to the method; when the method finishes running, its variables cease
+to exist.  Method variables are declared with the @code{var}
+declaration.
+
+@subsection Verbs
+
+@cindex verbs
+
+In order for an object's method to be used as a command by players,
+the method must be ``bound'' to a @dfn{verb}.  If a method is not
+bound to a verb it can't be accessed by players, only by COOL code.
+In a later section we'll go over how to bind a method to a verb.
+
+@cindex method arguments
+
+When a method is run as a verb, any words following the verb are given
+to the method as arguments.  For example, if object @code{xyz} has a
+@code{look} verb bound to the @code{look_verb} method, and a player
+types @samp{look at xyz with glass} the @code{look_verb} method on the
+@code{xyz} object will be run with the arguments @code{at},
+@code{xyz}, @code{with}, and @code{glass}.  If there is another object
+in the room or carried by the player, named @code{glass}, with a a
+@code{look} verb, it may also be called, and with the same arguments.
+Since every object in the room or carried by the player with a
+@code{look} verb may get called, each object must check the arguments
+to see if they were the one the @code{look} was meant for.  When an
+object's @code{look} verb determines that it's the object that
+matches, it returns @code{0} as its value to tell the server that no
+further @code{look} verbs on the other objects need to be called.
+
+@findex verb
+
+An object's @code{verb} binding can specify different words to invoke
+the method the verbs are bound to.  For example, the words @code{poke}
+and @code{prod} can both be verbs bound to the @code{poke_verb}
+method.  Then a player could type either @samp{poke xyz} or @samp{prod
+xyz}.
+
+@cindex prepositions
+
+Verb bindings can also be set up so that in addition to the verb,
+another word must be typed as part of the command.  Typically the
+second word is a preposition; for example, @samp{with}, @samp{in},
+@samp{to}, @samp{from}, and so on.  This allows you to set up
+commands like @samp{put money in jar} and @samp{rub lamp with rag}.
+
+@chapter The COOL programming language
+
+The COOL programming language is a relatively small and simple
+object-oriented language designed to be easy to learn for most
+non-programmers.
+
+Having given you enough context to allow you to understand exactly
+what COOL code is doing, we'll see what COOL code looks like and what
+it means.  We'll begin with the syntax and semantics of expressions,
+those pieces of code that have values.  After that, we'll go over
+statements, the next level of structure up from expressions.  Next,
+we'll discuss the concept of a task, the kind of running process
+initiated by players entering commands, among other causes.  Finally,
+we'll go over the built-in functions available to COOL code and
+describe what they do.
+
+@section Comments
+
+You can include bits of text in your COOL program that are ignored by
+the server.  The idea is to allow you to put in notes to yourself and
+others about what the code is doing.  To add a comment you use a
+character string literal as a statement.  For example, the sentence
+about peanut butter in the following code is essentially ignored
+during execution but will be maintained in the database:
+
+@example
+for x in (#0.players)
+  "Grendel eats peanut butter!";
+  player:tell(x.name, " (", x, ")");
+endfor
+@end example
+
+@section Expressions
+
+@cindex expressions
+
+Expressions are those pieces of COOL code that generate values; for
+example, the COOL code
+
+@example
+3 + 4
+@end example
+
+@noindent
+is an expression that generates (or ``has'' or ``returns'') the value
+7.  There are many kinds of expressions in COOL, all of them discussed
+below.
+
+@subsection Errors
+
+@cindex errors
+
+Most kinds of expressions can be used improperly in some way.  For
+example, the expression
+
+@example
+3 / 0
+@end example
+@noindent
+
+@vindex E_DIV
+
+@noindent
+is improper because it tries to divide by zero.  In such cases, COOL
+``raises'' an error value (@code{E_DIV} in this example), which causes
+the method's code to be aborted and a message to be printed on the
+player's screen.
+
+@subsection Literals
+
+@cindex literals
+
+The simplest kind of expression is a literal COOL value, just as
+described in the section on values at the beginning of this document.
+For example, the following are all expressions:
+
+@example
+17
+#893
+"This is a character string."
+E_TYPE
+@{"This", "is", "a", "list", "of", "words"@}
+@end example
+
+Note that the list expression contains other expressions, several
+character strings in this case.  In general, those expressions can be
+of any kind at all, not necessarily literal values.  For example,
+
+@example
+@{3 + 4, 3 - 4, 3 * 4@}
+@end example
+
+@noindent
+is an expression whose value is the list @samp{@{7, -1, 12@}}.
+
+@findex typeof
+@cindex types
+@cindex constants
+
+COOL also has some constants, which are returned by the
+@code{typeof()} built-in function:
+
+@vindex NUM
+@vindex LIST
+@vindex OBJ
+@vindex ERR
+@vindex STR
+
+@example
+NUM         OBJ          STR
+LIST        ERR
+@end example
+
+Their meanings are as follows:
+
+@table @code
+@item NUM
+@cindex numbers
+a number, the type code for numbers
+@item LIST
+@cindex lists
+a number, the type code for lists
+@item STR
+@cindex strings
+a number, the type code for strings
+@item OBJ
+@cindex objects
+a number, the type code for objects
+@item ERR
+@cindex errors
+a number, the type code for error values
+@end table
+
+@subsection Variables
+
+@cindex variables
+@cindex variables, local
+@cindex variables, method
+@cindex local variables
+@cindex method variables
+
+As discussed earlier, it is possible to store values in variables on
+objects; the variables will keep those values forever, or until
+another value is put there.  It's often useful to have a place to put
+a value for just the duration of the execution of a method; COOL
+provides method (local) variables for this purpose.
+
+Method variables are named places to hold values; you can get and set
+the value in a given method variable as many times as you like.
+Method variables are temporary, though; they only last while a
+particular method is running; after it finishes, all of the method
+variables cease to exist and the values are forgotten.  The method
+variables set in one method are not visible to the code of other
+methods.  When a method begins executing, the method variables are
+initialized to 0.
+
+The name for object and method variables is made up of letters,
+digits, and the underscore character (@samp{_}) and cannot begin with
+a digit.  The following are all valid variable names:
+
+@example
+foo
+_foo
+this2that
+M68000
+two_words
+This_is_a_very_long_multiword_variable_name
+@end example
+
+Note that, along with almost everything else in COOL, the case of the
+letters in variable names is insignificant.  For example, these are all
+names for the same variable:
+
+@example
+fubar
+Fubar
+FUBAR
+fUbAr
+@end example
+
+A variable name is itself an expression; it's value is the value of
+the named variable.
+
+@cindex assignment statement
+
+To change the value stored in a variable, use an @dfn{assignment}
+statement:
+
+@example
+@var{variable} = @var{expression}
+@end example
+
+For example, to change the variable named @samp{x} to have the value
+17, you would write @samp{x = 17;}.  An assignment statement changes
+the value of of the named variable.
+
+COOL also has some predefined pseudo-variables, they are read-only:
+
+@cindex variables
+@cindex variables, pseudo
+@cindex pseudo-variables
+
+@example
+player      this         caller
+args
+@end example
+
+Their values are as follows:
+
+@table @code
+@item player
+@vindex player
+an object, the player who typed the command that started the task that
+involved running this piece of code.
+@item this
+@vindex this
+an object, the object on which the currently-running method was found.
+@item caller
+@vindex caller
+an object, the object on which the method that called the
+currently-running method was found.  For the first method called for a
+given command, @code{caller} has the same value as @code{player}.
+@item args
+@vindex args
+usually a list, the arguments given to this method.  The @code{parse}
+method on the player object gets the entire command line typed by the
+player, it hands it off to @code{call_verb}, which splits it into
+words, which is passed as a list of words to a method bound to the
+verb.
+@end table
+
+@subsection Arithmetic
+
+@cindex arithmetic
+
+All of the usual simple operations on numbers are available to COOL
+programs:
+
+@example
++    -    *    /    %
+@end example
+
+These are, in order, addition, subtraction, multiplication, division,
+and remainder.  In the following table, the expressions on the left
+have the corresponding values on the right:
+
+@example
+5 + 2     @result{}  7
+5 - 2     @result{}  3
+5 * 2     @result{}  10
+5 / 2     @result{}  2
+5 % 2     @result{}  1
+5 % -2    @result{}  1
+-5 % 2    @result{}  -1
+-5 % -2   @result{}  -1
+-(5 + 2)  @result{}  -7
+@end example
+
+Note that division in COOL throws away the remainder and that the
+result of the remainder operator (@samp{%}) has the same sign as the
+left-hand operand.  Also, note that @samp{-} can be used without a
+left-hand operand to negate a numeric expression.
+
+The @samp{+} operator can also be used to append two strings.  The
+expression
+
+@example
+"foo" + "bar"
+@end example
+
+@noindent
+has the value
+
+@example
+"foobar"
+@end example
+
+@vindex E_TYPE
+@vindex E_DIV
+
+Unless both operands to an arithmetic operator are numbers (or, for
+@samp{+}, both strings), the error value @code{E_TYPE} is raised.  If
+the right-hand operand for the division or remainder operators
+(@samp{/} or @samp{%}) is zero, the error value @code{E_DIV} is
+raised.
+
+@subsection Comparing values
+
+@cindex comparing values
+
+Any two values can be compared for equality using @samp{==} and
+@samp{!=}.  The first of these returns 1 if the two values are equal
+and 0 otherwise; the second does the reverse:
+
+@example
+3 == 4                              @result{}  0
+3 != 4                              @result{}  1
+"foo" == "Foo"                      @result{}  1
+#34 != #34                          @result{}  0
+@{1, #34, "foo"@} == @{1, #34, "FoO"@}  @result{}  1
+E_DIV == E_TYPE                     @result{}  0
+3 != "foo"                          @result{}  1
+@end example
+
+@findex strcmp
+
+@noindent
+Note that comparison of strings is case-insensitive; that is, it does
+not distinguish between the upper- and lower-case version of letters.
+To perform a case-sensitive comparison, use the @code{strcmp} function
+described later.
+
+Numbers, object numbers, strings, and error values can also be
+compared for ordering purposes using the following operators:
+
+@example
+<       <=      >=      >
+@end example
+
+@noindent
+meaning ``less than,'' ``less than or equal,'' ``greater than or
+equal,'' and ``greater than,'' respectively.  As with the equality
+operators, these return 1 when their operands are in the appropriate
+relation and 0 otherwise:
+
+@example
+3 < 4           @result{}  1
+#34 >= #32      @result{}  1
+"foo" <= "Boo"  @result{}  0
+@end example
+
+@vindex E_TYPE
+
+@noindent
+Note that, as with the equality operators, strings are compared
+case-insensitively.  If the operands to these four comparison
+operators are of different types, or if they are lists, then
+@code{E_TYPE} is raised.
+
+@subsection Conditional expressions
+
+@cindex conditional expressions
+
+There is a notion in COOL of @dfn{true} and @dfn{false} values; every
+value is one or the other.  The true values are as follows:
+
+@itemize @bullet
+@item
+all numbers other than zero
+@item
+all non-empty strings (i.e., other than @samp{""})
+@item
+all non-empty lists (i.e., other than @samp{@{@}})
+@item
+all non-negative object numbers.  (Note that a negative object number
+doesn't necessarily mean that such an object exists.)
+@end itemize
+
+@noindent
+All other values are false:
+
+@itemize @bullet
+@item
+zero
+@item
+the empty string (@samp{""})
+@item
+the empty list (@samp{@{@}})
+@item
+all positive object numbers
+@item
+all error values
+@end itemize
+
+There are four kinds of expressions and two kinds of statements that
+depend upon this classification of COOL values.  In describing them,
+we sometimes refer to the @dfn{truth value} of a COOL value; this is
+just @dfn{true} or @dfn{false}, the category into which that COOL
+value is classified.
+
+To negate the truth value of a COOL value, use the @samp{!} operator:
+
+@example
+! @var{expression}
+@end example
+
+If the value of @var{expression} is true, @samp{!} returns 0;
+otherwise, it returns 1:
+
+@example
+! "foo"     @result{}  0
+! (3 >= 4)  @result{}  1
+@end example
+
+@noindent
+The negation operator is usually read as ``not.''
+
+It is frequently useful to test more than one condition to see if some
+or all of them are true.  COOL provides two operators for this:
+
+@example
+@var{expression-1} && @var{expression-2}
+@var{expression-1} || @var{expression-2}
+@end example
+
+@noindent
+These operators are usually read as ``and'' and ``or,'' respectively.
+
+The @samp{&&} operator first evaluates @var{expression-1}.  If it
+returns a true value, then @var{expression-2} is evaluated and its
+value becomes the value of the @samp{&&} expression as a whole;
+otherwise, the value of @var{expression-1} is used as the value of the
+@samp{&&} expression.  Note that @var{expression-2} is only evaluated
+if @var{expression-1} returns a true value.
+@refill
+
+The @samp{||} operator works similarly, except that @var{expression-2}
+is evaluated only if @var{expression-1} returns a false value.
+
+These two operators behave very much like ``and'' and ``or'' in
+English:
+
+@example
+1 && 1                  @result{}  1
+0 && 1                  @result{}  0
+0 && 0                  @result{}  0
+1 || 1                  @result{}  1
+0 || 1                  @result{}  1
+0 || 0                  @result{}  0
+17 <= 23  &&  23 <= 27  @result{}  1
+@end example
+
+@subsection Lists and strings
+
+@cindex lists
+@cindex strings
+
+As was mentioned earlier, lists can be constructed by writing a
+comma-separated sequence of expressions inside curly braces:
+
+@example
+@{@var{expression-1}, @var{expression-2}, @dots{}, @var{expression-N}@}
+@end example
+
+@noindent
+The resulting list has the value of @var{expression-1} as its first
+element, that of @var{expression-2} as the second, etc.
+
+@example
+@{3 < 4, 3 <= 4, 3 >= 4, 3 > 4@}  @result{}  @{1, 1, 0, 0@}
+@end example
+
+Both strings and lists can be seen as ordered sequences of COOL
+values.  In the case of strings, each is a sequence of
+single-character strings; that is, one can view the string
+@samp{"bar"} as a sequence of the strings @samp{"b"}, @samp{"a"}, and
+@samp{"r"}.  COOL allows you to refer to the elements of lists and
+strings by number, the @dfn{index} of that element in the list or
+string.  The first element in a list or string has index 1, the second
+has index 2, and so on.
+
+@subsubheading Extracting an Element from a List or String
+
+@cindex list extracting
+@cindex string extracting
+
+The indexing expression in COOL extracts a specified element from a
+list or string:
+
+@example
+@var{expression-1}[@var{expression-2}]
+@end example
+
+@vindex E_TYPE
+@vindex E_RANGE
+
+First, @var{expression-1} is evaluated; it must return a list or a
+string (the @dfn{sequence}).  Then, @var{expression-2} is evaluated
+and must return a number (the @dfn{index}).  If either of the
+expressions returns some other type of value, @code{E_TYPE} is
+raised.  The index must be between 1 and the length of the sequence,
+inclusive; if it is not, then @code{E_RANGE} is raised.  The value
+of the indexing expression is the index'th element in the sequence.
+
+@example
+"fob"[2]            @result{}  "o"
+"fob"[1]            @result{}  "f"
+@{#12, #23, #34@}[3]  @result{}  #34
+@end example
+
+@noindent
+Note that there are no legal indices for the empty string or list,
+since there are no numbers between 1 and 0 (the length of the empty
+string or list).
+
+@ignore
+@subsubsection Replacing an element of a list
+
+@cindex list modification
+
+It often happens that one wants to change just one particular slot of
+a list, which is stored in a variable.  This can be done conveniently
+using an @dfn{indexed assignment} having the following form:
+
+@example
+@var{variable}[@var{index-expr}] = @var{result-expr}
+@end example
+
+@vindex E_TYPE
+@vindex E_INVIND
+@vindex E_VARNF
+
+@noindent
+This writes into a variable.  The usual errors (@code{E_TYPE},
+@code{E_INVIND}, and @code{E_VARNF} may be raised.  Correspondingly,
+if @var{variable} does not yet have a value (i.e., it has never been
+assigned to), @code{E_VARNF} will be raised.
+
+@vindex E_RANGE
+
+If @var{index-expr} is not a number, or if the value of @var{variable}
+is not a list, @code{E_TYPE} is raised.  Note that indexed assignment
+does not work for strings.  Now suppose @var{index-expr} evaluates to
+a number @var{k}.  If @var{k} is outside the range of the list (i.e.
+smaller than 1 or greater than the length of the list), @code{E_RANGE}
+is raised.  Otherwise, the actual assignment takes place.  The
+variable is assigned a new list that is identical to the original one
+except at the @var{k}-th position, where the new list contains the
+result of @var{result-expr} instead.
+
+The assignment expression itself returns the value of
+@var{result-expr}.  For the following examples, assume that @code{l}
+initially contains the list @samp{@{1, 2, 3@}}:
+
+@example
+l[5] = 3          @error{}   E_RANGE
+l["first"] = 4    @error{}   E_TYPE
+l[2] = l[2] + 3   @result{}   5
+l                 @result{}   @{1, 5, 3@}
+l[2] = "foo"      @result{}   "foo"
+l                 @result{}   @{1, "foo", 3@}
+@end example
+
+@noindent
+Note that, after an indexed assignment, the variable contains a
+@emph{new} list, a copy of the original list in all but the @var{k}-th
+place, where it contains a new value.  In programming-language jargon,
+the original list is not mutated, and there is no aliasing.  (Indeed,
+no COOL value is mutable and no aliasing ever occurs.)
+
+Indexed assignment can be nested to many levels, to work on nested
+lists.  Assume that @code{l} initially contains the list
+
+@example
+@{@{1, 2, 3@}, @{4, 5, 6@}, "foo"@}
+@end example
+
+@noindent
+in the following examples:
+
+@example
+l[7] = 4             @error{}   E_RANGE
+l[1][8] = 35         @error{}   E_RANGE
+l[3][2] = "c"        @error{}   E_TYPE
+l[1][1][1] = 3       @error{}   E_TYPE
+l[2][2] = -l[2][2]   @result{}   -5
+l                    @result{}   @{@{1, 2, 3@}, @{4, -5, 6@}, "foo"@}
+l[2] = "bar"         @result{}   "bar"
+l                    @result{}   @{@{1, 2, 3@}, "bar", "foo"@}
+@end example
+
+@vindex E_RANGE
+@vindex E_TYPE
+
+@noindent
+The first two examples raise @code{E_RANGE} because 7 is out of the
+range of @code{l} and 8 is out of the range of @code{l[1]}.  The next
+two examples raise @code{E_TYPE} because @code{l[3]} and
+@code{l[1][1]} are not lists.
+@end ignore
+
+@subsubheading Extracting a subsequence of a list or string
+
+@cindex list extracting
+@cindex string extracting
+
+The range expression extracts a specified subsequence from a list or
+string:
+
+@example
+@var{expression-1}[@var{expression-2}..@var{expression-3}]
+@var{expression-1}[..@var{expression-3}]
+@var{expression-1}[@var{expression-2}..]
+@end example
+
+@vindex E_TYPE
+@vindex E_RANGE
+
+The three expressions are evaluated in order.  @var{Expression-1} must
+return a list or string (the @dfn{sequence}) and the other two
+expressions must return numbers (the @dfn{low} and @dfn{high} indices,
+respectively); otherwise, @code{E_TYPE} is raised.  If the low index
+is greater than the high index, then the empty string or list is
+returned, depending on whether the sequence is a string or a list.
+Otherwise, both indices must be between 1 and the length of the
+sequence; @code{E_RANGE} is raised if they are not.  A new list or
+string is returned that contains just the elements of the sequence
+with indices between the low and high bounds.  As the second and third
+forms show, you can leave off either the low or high index; you'll
+automatically get 1 if you leave off the low index, and the value of
+length of the sequence if you leave off the high index.
+
+@example
+"foobar"[2..6]                   @result{}  "oobar"
+"foobar"[2..]                    @result{}  "oobar"
+"foobar"[3..3]                   @result{}  "o"
+"foobar"[..3]                    @result{}  "foo"
+"foobar"[17..12]                 @result{}  ""
+@{"one", "two", "three"@}[1..2]    @result{}  @{"one", "two"@}
+@{"one", "two", "three"@}[3..3]    @result{}  @{"three"@}
+@{"one", "two", "three"@}[17..12]  @result{}  @{@}
+@end example
+
+@subsubheading Other operations on lists and strings
+
+@findex in
+
+The membership expression tests whether or not a given COOL value is
+an element of a given list, or a substring of a given string and, if
+so, with what index:
+
+@example
+@var{expression-1} in @var{expression-2}
+@end example
+
+@vindex E_TYPE
+
+@var{Expression-2} must return a list or string, otherwise,
+@code{E_TYPE} is raised.  If the value of @var{expression-1} is in
+that list or string, then the index of its first occurrence in the
+list or string is returned; otherwise, the @code{in} expression
+returns 0.
+
+@example
+2 in @{5, 8, 2, 3@}               @result{}  3
+7 in @{5, 8, 2, 3@}               @result{}  0
+"bar" in @{"Foo", "Bar", "Baz"@}  @result{}  2
+"bit" in "frobitz"                @result{}  4
+@end example
+
+@noindent
+Note that the membership operator is case-insensitive in comparing
+strings, just like the comparison operators.  Note also that since it
+returns zero only if the given value is not in the given list or
+string, the @code{in} expression can be used either as a membership
+test or as an element or substring locator.
+
+@subsection Calling built-in functions and other methods
+
+@cindex built-in functions
+@cindex methods
+
+COOL provides a number of functions for performing a variety of
+operations; a complete list, giving their names, arguments, and
+semantics, appears in a separate section later.
+
+The syntax of a call to a built-in function is as follows:
+
+@example
+@var{name}(@var{expr-1}, @var{expr-2}, @dots{}, @var{expr-N})
+@end example
+
+@vindex E_TYPE
+@findex lengthof
+
+@noindent
+where @var{name} is the name of one of the built-in functions.  The
+expressions between the parentheses, called @dfn{arguments}, are each
+evaluated in turn and then given to the named function.  Most
+functions require that certain of the arguments have certain specified
+types (e.g., the @code{lengthof()} function requires a list or a
+string as its argument); @code{E_TYPE} is raised if any argument has
+the wrong type.
+
+Object methods can also call other methods, usually using this syntax:
+
+@example
+@var{expr-0}.@var{name}(@var{expr-1}, @var{expr-2}, @dots{}, @var{expr-N})
+@end example
+
+@noindent
+or, if there aren't any arguments you can use either of the following
+2 forms:
+
+@example
+@var{expr-0}.@var{name}()
+@var{expr-0}.@var{name}
+@end example
+
+@vindex E_TYPE
+@vindex E_OBJNF
+@vindex E_MAXREC
+@vindex E_METHODNF
+
+@noindent
+@var{Expr-0} must return an object number; @code{E_TYPE} is raised
+otherwise; if @var{expr-0} doesn't evaluate to an object value,
+@code{E_INVIND} is raised.  If the object with that number does not
+exist, @code{E_OBJNF} is raised.  If this task is too deeply nested in
+methods calling methods calling methods, then @code{E_MAXREC} is
+raised; the limit in COOLMUD at this writing is 50 levels.  If neither
+the object nor any of its ancestors defines a method matching the
+given name, @code{E_METHODNF} is raised.  Otherwise, if none of these
+things happens, the named method on the given object is called; the
+various built-in variables have the following initial values in the
+called method:
+
+@table @code
+@item this
+@vindex this
+an object, the value of @var{expr-0}
+@item args
+@vindex args
+a list, the values of @var{expr-1}, @var{expr-2}, etc.
+@item caller
+@vindex caller
+an object, the value of @code{this} in the calling method
+@item player
+@vindex player
+an object, the same value as it had initially in the calling method.
+@end table
+
+Note that these are really pseudo-variables; they're read-only and you
+can't assign new values to them.
+
+We said ``usually'' at the beginning of the previous paragraph because
+that syntax is used when the @var{name} follows the rules for allowed
+variable names.  There is also a syntax allowing you to compute the
+name of the method:
+
+@example
+@var{expr-0}.(@var{expr-00})(@var{expr-1}, @var{expr-2}, @dots{}, @var{expr-N})
+@end example
+
+@vindex E_TYPE
+
+@noindent
+The expression @var{expr-00} must return a string; @code{E_TYPE} is
+raised otherwise.
+
+@subsection Parentheses and operator precedence
+
+@cindex parentheses
+@cindex precedence
+
+As shown in a few examples above, COOL allows you to use parentheses
+to make it clear how you intend for complex expressions to be grouped.
+For example, the expression
+
+@example
+3 * (4 + 5)
+@end example
+
+@noindent
+performs the addition of 4 and 5 before multiplying the result by 3.
+
+If you leave out the parentheses, COOL will figure out how to group
+the expression according to certain rules.  The first of these is that
+some operators have higher @dfn{precedence} than others; operators
+with higher precedence will bind more tightly to their operands than
+those with lower precedence.  For example, multiplication has higher
+precedence than addition; thus, if the parentheses had been left out
+of the expression in the previous paragraph, COOL would have grouped
+it as follows:
+
+@example
+(3 * 4) + 5
+@end example
+
+The table below gives the relative precedence of all of the COOL
+operators; operators on higher lines in the table have higher
+precedence and those on the same line have identical precedence:
+
+@example
+!       - @r{(without a left operand)}
+*       /       %
++       -
+==      !=      <       <=      >       >=      in
+&&
+||
+=
+@end example
+
+@noindent
+Thus, the horrendous expression
+
+@example
+x = a < b && c > d + e * f ? w in y | - q - r
+@end example
+
+@noindent
+would be grouped as follows:
+
+@example
+x = (((a < b) && (c > (d + (e * f)))) ? (w in y) | ((- q) - r))
+@end example
+
+@noindent
+It is best to keep expressions simpler than this and to use
+parentheses liberally to make your meaning clear to other humans.
+
+@section Statements
+
+@cindex statements
+
+Statements are COOL constructs that, in contrast to expressions,
+perform some useful, non-value-producing operation.  For example,
+there are several kinds of statements, called `looping constructs',
+that repeatedly perform some set of operations.
+
+@subsection Simple statements
+
+The simplest kind of statement is the @dfn{null} statement, consisting
+of just a semicolon:
+
+@example
+;
+@end example
+
+@noindent
+It doesn't do anything at all.
+
+The next simplest statements are also some of the most common, the
+expression statement and the assignment statement:
+
+@example
+@var{expression};
+@var{var} = @var{expression};
+@end example
+
+@noindent
+For the expression statement, the given expression is evaluated and
+the resulting value is ignored.  The typical expression for such
+statements is the method call.  Of course, there's no use for such a
+statement unless the evaluation of @var{expression} has some
+side-effect, such as printing some text on someone's screen, etc.  For
+the assignment statement, the variable gets the new value.
+
+@subsection Conditional execution
+
+@cindex conditional execution
+
+@findex if
+
+The @code{if} statement allows you to decide whether or not to perform
+some statements based on the value of an expression:
+
+@example
+if (@var{expression})
+  @var{statements}
+endif
+@end example
+
+@noindent
+@var{Expression} is evaluated, if it returns a true value, the
+statements are executed; otherwise, nothing is done.
+
+@findex else
+
+Sometimes you'll want to perform one set of statements if some
+condition is true and some other set of statements otherwise.  The
+optional @code{else} phrase in an @code{if} statement allows you to do
+this:
+
+@example
+if (@var{expression})
+  @var{statements-1}
+else
+  @var{statements-2}
+endif
+@end example
+
+@noindent
+This statement is executed just like the previous one, except that
+@var{statements-1} are executed if @var{expression} returns a true
+value and @var{statements-2} are executed otherwise.
+
+Sometimes, you'll need to test several conditions in a kind of nested
+fashion:
+
+@example
+if (@var{expression-1})
+  @var{statements-1}
+else
+  if (@var{expression-2})
+    @var{statements-2}
+  else
+    if (@var{expression-3})
+      @var{statements-3}
+    else
+      @var{statements-4}
+    endif
+  endif
+endif
+@end example
+
+@noindent
+Such code can easily become tedious to write and difficult to read.
+COOL provides a somewhat simpler notation for such cases:
+
+@example
+if (@var{expression-1})
+  @var{statements-1}
+elseif (@var{expression-2})
+  @var{statements-2}
+elseif (@var{expression-3})
+  @var{statements-3}
+else
+  @var{statements-4}
+endif
+@end example
+
+@findex elseif
+
+@noindent
+Note that @code{elseif} is written as a single word, without any
+spaces.  This simpler version has the very same meaning as the
+original: evaluate @var{expression-i} for @var{i} equal to 1, 2, and
+3, in turn, until one of them returns a true value; then execute the
+@var{statements-i} associated with that expression.  If none of the
+@var{expression-i} return a true value, then execute
+@var{statements-4}.
+
+Any number of @code{elseif} phrases can appear, each having this form:
+
+@example
+elseif (@var{expression}) @var{statements}
+@end example
+
+The complete syntax of the @code{if} statement is as follows:
+
+@example
+if (@var{expression})
+  @var{statements}
+@var{zero-or-more-elseif-phrases}
+@var{an-optional-else-phrase}
+endif
+@end example
+
+@subsection Iteration
+
+@cindex iteration
+
+COOL provides three different kinds of looping statements, allowing
+you to have a set of statements executed (1) once for each element of
+a given list, (2) once for each number in a given range, and (3) over
+and over until a given condition stops being true.
+
+To perform some statements once for each element of a given list, you
+use this syntax:
+
+@example
+for @var{variable} in (@var{expression})
+  @var{statements}
+endfor
+@end example
+
+@vindex E_TYPE
+
+@noindent
+The @var{expression} is evaluated and should return a list; if it does
+not, @code{E_TYPE} is generated.  The @var{statements} are then
+executed once for each element of that list in turn; each time, the
+given @var{variable} is assigned the value of the element in question.
+For example, consider the following statements:
+
+@example
+odds = @{1, 3, 5, 7, 9@};
+evens = @{@};
+for n in (odds)
+  evens = listappend(evens, n + 1);
+endfor
+@end example
+
+@noindent
+The value of the variable @code{evens} after executing these
+statements is the list
+
+@example
+@{2, 4, 6, 8, 10@}
+@end example
+
+The syntax for performing a set of statements once for each number in
+a given range is as follows:
+
+@example
+for @var{variable} in [@var{expression-1}..@var{expression-2}]
+  @var{statements}
+endfor
+@end example
+
+@vindex E_TYPE
+
+@noindent
+The two expressions are evaluated and should return numbers;
+@code{E_TYPE} is raised otherwise.  The @var{statements} are then
+executed, once for each integer greater than or equal to the value of
+@var{expression-1} and less than or equal to the result of
+@var{expression-2}, in increasing order.  Each time, the given
+variable is assigned the integer in question.  For example, consider
+the following statements:
+
+@example
+evens = @{@};
+for n in [1..5]
+  evens = listappend(evens, 2 * n);
+endfor
+@end example
+
+@noindent
+The value of the variable @code{evens} after executing these
+statements is the same as in the previous example, the list
+
+@example
+@{2, 4, 6, 8, 10@}
+@end example
+
+The final kind of loop in COOL executes a set of statements repeatedly
+as long as a given condition remains true:
+
+@example
+while (@var{expression})
+  @var{statements}
+endwhile
+@end example
+
+@findex while
+
+@noindent
+The @var{expression} is evaluated and, if it returns a true value, the
+@var{statements} are executed; then, execution of the @code{while}
+statement begins all over again with the evaluation of the expression.
+That is, execution alternates between evaluating the expression and
+executing the statements until the expression returns a false value.
+The following statements have precisely the same effect as the loop
+just shown above:
+
+@example
+evens = @{@};
+n = 1;
+while (n <= 5)
+  evens = listappend(evens, 2 * n);
+  n = n + 1;
+endwhile
+@end example
+
+With each kind of loop, it is possible that the statements in the body
+of the loop will never be executed at all.  For iteration over lists,
+this happens when the list returned by the expression is empty.  For
+iteration on numbers, it happens when @var{expression-1} returns a
+larger number than @var{expression-2}.  Finally, for the @code{while}
+loop, it happens if the expression returns a false value the first
+time it is evaluated.
+
+Inside either of the @code{for} or @code{while} iteration loops you
+can have a @code{break} or @code{continue} statement.  The
+@code{break} statement causes execution of the @code{for} or
+@code{while} loop to end prematurely; execution continues with the
+first statement after the @code{endfor} or @code{endwhile}.  The
+@code{continue} statement causes all statements after it in the
+iteration loop to be skipped and execution continues with the next
+iteration of the loop.  If you have @code{for} or @code{while}
+statements inside of other @code{for} or @code{while} statements you
+can specify which iteration loop should be broken out of by following
+@code{break} with a number specifying the loop level, where 1 means
+the current loop.  Likewise, for the @code{continue} statement you can
+specify which iteration loop to to skip the rest of by following
+@code{continue} with a number specifying the loop level.
+
+@subsection Returning a value from a method
+
+@cindex returning values
+@findex return
+
+The COOL program in a method is just a sequence of statements.
+Normally, when the method is called, those statements are simply
+executed in order and then the number 0 is returned as the value of
+the method-call expression.  Using the @code{return} statement, one
+can change this behavior.  The @code{return} statement has one of the
+following two forms:
+
+@example
+return;
+@end example
+
+@noindent
+or
+
+@example
+return @var{expression};
+@end example
+
+@noindent
+When it is executed, execution of the current method is terminated
+immediately after evaluating the given @var{expression}, if any.  The
+method-call expression that started the execution of this method then
+returns either the value of @var{expression} or the number 0, if no
+@var{expression} was provided.
+
+@subsection Executing statements at a later time
+
+@cindex delayed execution
+
+It is sometimes useful to have some sequence of statements execute at
+a later time, without human intervention.  For example, one might
+implement an object that, when thrown into the air, eventually falls
+back to the ground; the @code{throw} verb on that object should
+arrange to print a message about the object landing on the ground, but
+the message shouldn't be printed until some number of seconds have
+passed.
+
+@findex at
+
+The @code{at} statement is intended for just such situations and has
+the following syntax:
+
+@example
+at (@var{expression})
+  @var{statements}
+endat
+@end example
+
+@noindent
+The @code{at} statement first executes the expression, which must
+return a number; call that number @var{n}.  It then creates a new COOL
+@dfn{task} that will, after at least @var{n} seconds, execute the
+statements.  When the new task begins, all variables will have the
+values they had at the time the @code{at} statement was executed.  The
+task executing the @code{at} statement immediately continues
+execution.
+
+@subsection Errors
+
+@cindex errors
+
+Statements do not return values, but some kinds of statements can be
+used improperly and thus generate errors.  If such an error is
+generated in a method that is not ignoring that particular error, then
+an error message is printed to the current player and the current
+command (or task, really) is aborted.  If the method is ignoring that
+error then the error is ignored and the statement that generated it is
+simply skipped; execution proceeds with the next statement.
+
+@var{(Need to add stuff about @code{raise} here as well.)}
+
+@section Built-in functions
+
+@cindex built-in functions
+
+There are a number of built-in functions available to COOL
+programmers.  Each one is discussed in detail in this section.  The
+presentation is broken into subsections by grouping functions with
+similar or related uses.
+
+@vindex E_TYPE
+
+For most functions, the expected types of the arguments are given; if
+the arguments are not of these types, @code{E_TYPE} is raised.  Some
+arguments can be of any type; in such cases, no type specification is
+given for the argument.  For most functions, the type of the result of
+the function is given.  Some functions do not return a result; in such
+cases, the specification @code{void} is used.  Some functions can
+return a result of any type, for them the specificaton @code{value} is
+used.
+
+@vindex E_ARGS
+
+Most functions take a fixed number of arguments and, in some cases,
+one or two optional arguments.  If a function is called with too many
+or too few arguments, @code{E_ARGS} is raised.
+
+@subsection Passing execution
+
+@cindex passing
+
+One of the most important facilities in an object-oriented programming
+language is ability for a child object to make use of a parent's
+implementation of some operation, even when the child provides its own
+definition for that operation.  The @code{pass()} function provides
+this facility in COOL.
+
+Often it is useful for a child object to define a method that
+@emph{augments} the behavior of a method on its parent object.  For
+example, in the @code{boot} database, the @code{DESCRIBED} object
+(which is an ancestor of most other objects) defines a method called
+@code{description} that simply returns the value of
+@code{description}; this method is used by the implementation of the
+@code{look} command.  In many cases, a programmer would like the
+description of some object to include some non-constant part; for
+example, a sentence about whether or not the object was `awake' or
+`sleeping'.  This sentence should be added onto the end of the normal
+description.  The programmer would like to have a means of calling the
+normal @code{description} method and then appending the sentence onto
+the end of that description.  The function @code{pass()} is for such
+situations.
+
+Thus, in the example above, the child-object's @code{description}
+method might have the following implementation:
+
+@example
+return pass() + "  It is " + (this.awake ? "awake." | "sleeping.");
+@end example
+
+@noindent
+That is, it calls its parent's @code{description} method and then
+appends to the result a sentence whose content is computed based on
+the value returned by a method on the object.
+
+@deftypefun value pass (@var{arg}, @dots{})
+@deftypefunx value pass (@var{arg}, @dots{}) to @var{object}
+@findex pass
+@code{pass} calls the method with the same name on the parent of the
+object who's method is running.  The arguments given to @code{pass}
+are the ones given to the called method and the returned value of the
+called method is returned from the call to @code{pass}.  The initial
+value of @code{this} in the called method is the same as in the
+calling method.
+
+Since COOL provides for multiple inheritence, the second form of the
+@code{pass()} call can be used to specify which parent's method to
+call.
+@end deftypefun
+
+@subsection Type-checking and conversion
+
+@cindex type-checking
+@cindex conversions
+
+@deftypefun num typeof (@var{value})
+@findex typeof
+Takes any COOL value and returns a number representing the type of
+@var{value}.  The result is the value of one of these built-in
+constants: @code{NUM}, @code{STR}, @code{LIST}, @code{OBJ}, or
+@code{ERR}.  Thus, one usually writes code like this:
+
+@example
+if (typeof(x) == LIST) @dots{}
+@end example
+
+@noindent
+and not like this:
+
+@example
+if (typeof(x) == 3) @dots{}
+@end example
+
+@noindent
+because the former is more readable than the latter.
+@end deftypefun
+
+@deftypefun str tostr (@var{value})
+@findex tostr
+Converts the given COOL value into a string and returns it.
+
+@example
+tostr(17)                  @result{}   "17"
+tostr(#17)                 @result{}   "#17"
+tostr("foo")               @result{}   "foo"
+tostr(@{1, 2@})              @result{}   "@{1, 2@}"
+tostr(E_PERM)              @result{}   "Permission denied"
+@end example
+
+@end deftypefun
+
+@deftypefun num tonum (@var{value})
+@findex tonum
+Converts the given COOL value into a number and returns it.  Object
+numbers are converted into the equivalent numbers, strings are parsed
+as the decimal encoding of a number, and errors are converted into
+numbers.  @code{tonum()} raises @code{E_TYPE} if @var{value} is a
+list.  If @var{value} is a string but the string does not contain a
+syntactically-correct number, then @code{tonum()} returns 0.
+
+@example
+tonum(#34)         @result{}   34
+tonum("34")        @result{}   34
+tonum(" - 34  ")   @result{}   34
+tonum(E_TYPE)      @result{}   1
+@end example
+@end deftypefun
+
+@noindent
+Notice that when parsing digits, spaces are ignored.
+
+@deftypefun obj toobj (@var{value})
+@findex toobj
+Converts the given COOL value into an object number and returns it.
+The conversions are very similar to those for @code{tonum()} except
+that for strings, the number @emph{may} be preceded by @samp{#}.
+
+@example
+toobj("34")       @result{}   #34
+toobj("#34")      @result{}   #34
+toobj("foo")      @result{}   #0
+toobj(@{1, 2@})     @error{}   E_TYPE
+@end example
+@end deftypefun
+
+@deftypefun err toerr (@var{value})
+@findex toerr
+Converts the given COOL value into an error value and returns that
+error value.
+
+@end deftypefun
+
+@subsection Operations on strings
+
+@cindex strings
+@cindex string operations
+
+@deftypefun list explode (str @var{string} [, str @var{string}])
+@findex explode
+Break @var{string} into a list of strings.  By default, explode breaks
+on spaces; the optional second argument is the character to break on.
+@end deftypefun
+
+@deftypefun num lengthof (str @var{string})
+@findex lengthof
+Returns the number of characters in @var{string}.  It is also
+permissible to pass a list to @code{lengthof()}; see the description
+in the next section.
+
+@example
+lengthof("foo")   @result{}   3
+lengthof("")      @result{}   0
+@end example
+@end deftypefun
+
+@deftypefun str crypt (str @var{text} [, str @var{salt}])
+@findex crypt
+Encrypts the given @var{text} using the standard UNIX encryption
+method.  If provided, @var{salt} should be a two-character string used
+for the extra encryption ``salt'' in the algorithm.  If @var{salt} is
+not provided, a random pair of characters is used.  The salt used is
+also returned as the first two characters of the encrypted string.
+
+Aside from the possibly-random selection of the salt, the encryption
+algorithm is deterministic.  You can test whether or not a given
+string is the same as the one used to produced a given piece of
+encrypted text; extract the first two characters of the encrypted text
+and pass the candidate string and those two characters to
+@code{crypt()}.  If the result is identical to the given encrypted
+text, you've got a match.
+
+@example
+crypt("foobar")         @result{}   "J3fSFQfgkp26w"
+crypt("foobar", "J3")   @result{}   "J3fSFQfgkp26w"
+crypt("mumble", "J3")   @result{}   "J3D0.dh.jjmWQ"
+crypt("foobar", "J4")   @result{}   "J4AcPxOJ4ncq2"
+@end example
+@end deftypefun
+
+@deftypefun list match (str @var{subject}, str @var{pattern} [, @var{token}])
+@deftypefunx list match_full (str @var{subject}, str @var{pattern}, [, @var{token} ])
+@findex match
+Looks for @var{pattern} as a substring of @var{subject}, where
+@var{pattern} must start on a word boundary.  Word are separated by
+spaces, or by @var{token} if given.  Returns 1 if a match was found, 0
+if not.
+
+@example
+match("foo bar baz", "foo")                  @result{} 1
+match("foo bar baz", "f")                    @result{} 1
+match("foo bar baz", "o")                    @result{} 0
+match("large green monster", "green")        @result{} 1
+match("large green monster", "gre")          @result{} 1
+match("large*green*monster", "monster", "*") @result{} 1
+@end example
+
+@code{match_full} is the same as @code{match}, except that
+@var{pattern} must match a full word within @var{subject}.  (Useful
+for TinyMUD-style exit matching.)
+
+@example
+match_full("foo bar baz", "foo")              @result{} 1
+match_full("foo bar baz", "f")                @result{} 0
+match_full("out;back;exit;leave", "out", ";") @result{} 1
+match_full("out;back;exit;leave", "ou", ";")  @result{} 0
+@end example
+@end deftypefun
+
+@subsection Operations on lists
+
+@cindex lists
+@cindex list operations
+
+@deftypefun num lengthof (list @var{list})
+@findex lengthof
+Returns the number of elements in @var{list}.  It is also permissible
+to pass a string to @code{lengthof()}; see the description in the
+previous section.
+
+@example
+lengthof(@{1, 2, 3@})   @result{}   3
+lengthof(@{@})          @result{}   0
+@end example
+@end deftypefun
+
+@deftypefun list listinsert (list @var{list}, @var{value} [, num @var{index}])
+@deftypefunx list listappend (list @var{list}, @var{value} [, num @var{index}])
+@findex listinsert
+@findex listappend
+These functions return a copy of @var{list} with @var{value} added as
+a new element.  @code{listinsert()} and @code{listappend()} add
+@var{value} before and after (respectively) the existing element with
+the given @var{index}, if provided.
+
+The following three expressions always have the same value:
+
+@example
+listinsert(@var{list}, @var{element}, @var{index})
+listappend(@var{list}, @var{element}, @var{index} - 1)
+@end example
+
+If @var{index} is not provided, then @code{listappend()} adds the
+@var{value} at the end of the list and @code{listinsert()} adds it at
+the beginning.
+
+@example
+x = @{1, 2, 3@};
+listappend(x, 4, 2)   @result{}   @{1, 2, 4, 3@}
+listinsert(x, 4, 2)   @result{}   @{1, 4, 2, 3@}
+listappend(x, 4)      @result{}   @{1, 2, 3, 4@}
+listinsert(x, 4)      @result{}   @{4, 1, 2, 3@}
+@end example
+@end deftypefun
+
+@deftypefun list listdelete (list @var{list}, num @var{index})
+@findex listdelete
+Returns a copy of @var{list} with the @var{index}th element removed.
+If @var{index} is not in the range @samp{[1..length(@var{list})]},
+@code{E_RANGE} is raised.
+
+@example
+x = @{"foo", "bar", "baz"@};
+listdelete(x, 2)   @result{}   @{"foo", "baz"@}
+@end example
+@end deftypefun
+
+@deftypefun list listassign (list @var{list}, @var{value}, num @var{index})
+@findex listassign
+Returns a copy of @var{list} with the @var{index}th element replaced
+by @var{value}.  If @var{index} is not in the range
+@samp{[1..length(@var{list})]}, @code{E_RANGE} is raised.
+
+@example
+x = @{"foo", "bar", "baz"@};
+listassign(x, "mumble", 2)   @result{}   @{"foo", "mumble", "baz"@}
+@end example
+@end deftypefun
+
+@deftypefun list setadd (list @var{list}, @var{value})
+@deftypefunx list setremove (list @var{list}, @var{value})
+@findex setadd
+@findex setremove
+Returns a copy of @var{list} with the given @var{value} added or
+removed, as appropriate; @var{list} is treated as a mathematical set.
+@code{setadd()} only adds @var{value} if it is not already an element
+of @var{list}.  @var{value} is added at the end of the resulting list,
+if at all.  Similarly, @code{setremove()} returns a list identical to
+@var{list} if @var{value} is not an element.  If @var{value} appears
+more than once in @var{list}, only the first occurrence is removed in
+the returned copy.
+
+@example
+setadd(@{1, 2, 3@}, 3)         @result{}   @{1, 2, 3@}
+setadd(@{1, 2, 3@}, 4)         @result{}   @{1, 2, 3, 4@}
+setremove(@{1, 2, 3@}, 3)      @result{}   @{1, 2@}
+setremove(@{1, 2, 3@}, 4)      @result{}   @{1, 2, 3@}
+setremove(@{1, 2, 3, 2@}, 2)   @result{}   @{1, 3, 2@}
+@end example
+@end deftypefun
+
+@subsection Operations on objects
+
+@deftypefun obj clone ()
+@findex clone
+Clone the current object.  A new object is created, whose parent is
+the current object.  Returns the object ID of the new object.  If the
+current object no longer exists (ie., has been destroyed), @samp{#-1}
+is returned.
+@end deftypefun
+
+@deftypefun void destroy ()
+@findex destroy
+Destroy the current object.  The object itself is responsible for cleaning
+up any references to itself prior to this call.  This might include
+removing any contained objects, re-parenting or destroying any
+instances of it, etc.
+@end deftypefun
+
+@deftypefun void chparents (list @var{list})
+@findex chparents
+@end deftypefun
+
+@deftypefun void call_verb (str @var{string})
+@findex call_verb
+@code{call_verb} isn't a function, it's a special method; when an
+object receives the @code{call_verb} message, the server intercepts it
+and calls the appropriate verb.  The argument should be the command
+string to be parsed, which is then matched against each verb on the
+object.  If a match is found, the associated method is called, with
+the parsed results in @code{args}.  (@code{args[1]} @equiv{}
+@code{verb}, @code{args[2]} @equiv{} @code{dobj}, @code{args[3]}
+@equiv{} @code{prep}, @code{args[4]} @equiv{} @code{iobj}).
+@end deftypefun
+
+@deftypefun void lock (str @var{string})
+@findex lock
+This function is used to lock an object, to prevent another execution
+stream from modifying the object before the current stream is finished
+with it (see the section on locking).  The argument is an arbitrary
+string, the name of the lock to place on the object.  Locks placed by
+an execution thread remain in effect until a corresponding
+@code{unlock()} call, or until the thread terminates.
+@end deftypefun
+
+@deftypefun void rm_verb (str @var{verbname})
+@findex rm_verb
+Removes the first verb named @var{verbname} from the current object.
+The argument may also be a string representing the number indexing the
+verb to be removed (starting at 0).  eg., @samp{rm_verb("3")} would
+remove the 4th verb.
+@end deftypefun
+
+@deftypefun void rm_method (str @var{methodname})
+@findex rm_method
+Removes the indicated method from the current object.  Note that
+COOLMUD has special provision to allow a method to remove itself and
+continue executing.  It won't be actually destroyed until the method
+finishes.
+@end deftypefun
+
+@deftypefun void rm_var (str @var{variablename})
+@findex rm_var
+Removes the indicated variable from the current object.
+@end deftypefun
+
+@deftypefun void unlock (str @var{string})
+@findex unlock
+Removes the indicated lock from the current object.  If any execution
+threads are waiting for this lock to be removed, they will execute.
+@end deftypefun
+
+@deftypefun void add_verb (str @var{verbname}, str @var{preposition}, str @var{methodname})
+@findex add_verb
+Adds a verb to the current object.  The first argument is the name of
+the verb.  The second argument is the preposition, or @samp{""} for
+none.  The third argument is the name of the method to call in the
+current object when the verb gets triggered.  The verb is added to the
+end of the object's verb list, unless a verb with the same name and no
+preposition exists, in which case it is inserted before that verb.
+This prevents a verb with no preposition masking one with a
+preposition.
+@end deftypefun
+
+@deftypefun void setvar (str @var{string}, @var{value})
+@findex setvar
+@vindex E_VARNF
+@vindex E_TYPE
+Sets a variable, specified in @var{string}, on the current object to
+@var{value}.  @code{E_VARNF} is raised if the variable doesn't exist,
+and @code{E_TYPE} is raised if there's a type mismatch (either between
+an existing variable, or an inherited one).
+@end deftypefun
+
+@deftypefun list verbs ()
+@findex verbs
+Returns a list of verbs on the current object.  Each element of the
+list is a 3-element list, consisting of 3 strings: the verb name, the
+preposition, and the method to call.
+@end deftypefun
+
+@deftypefun list vars ()
+@findex vars
+Returns a list of variables on the current object.  Each element of the
+list is a string containing the name of the variable.
+@end deftypefun
+
+@deftypefun value getvar (str @var{variablename})
+@findex getvar
+Gets the value of the indicated variable on the current object.  This
+allows the use of an arbitrary string to get the value of a variable.
+(eg., @samp{getvar("abc" + "def")})
+@end deftypefun
+
+@deftypefun list methods ()
+@findex methods
+Returns a list of methods on the current object.  Each element of the
+list is a string containing the name of the method.
+@end deftypefun
+
+@deftypefun num hasparent (obj @var{object})
+@findex hasparent
+Returns a positive value if the current object has @var{object} as a
+parent.  This function looks recursively on all parents of the current
+object, so it will return 1 if the object has @var{object} as a parent
+anywhere in its inheritance tree, and 0 otherwise.
+@end deftypefun
+
+@deftypefun str spew_method (str @var{methodname})
+@findex spew_method
+Returns a string containing the internal stack-machine code for method
+@var{methodname}.  This code is pretty unintelligible unless your
+brain works in RPN.  Even then, some instructions are hard to figure
+out, and there's not much point.  Only for the habitually curious.
+@end deftypefun
+
+@deftypefun str list_method (str @var{methodname} [, num @var{lineno} [, num @var{fullbrackets} [, num @var{indent}]]])
+@findex list_method
+Returns a string containing the decompiled code for method
+@var{methodname}.  This works by turning the stack machine code back
+into readable form.  It does automatic indentation, line numbering,
+and smart bracketing (ie., it will use the minimum number of brackets
+when decompiling an expression).  The three optional arguments are
+numeric arguments which control the decompilation:
+
+@table @var
+@item lineno
+Turns line numbering on and off.
+@item fullbrackets
+When on, dumb bracketing will be used in every
+expression.  Default is off, or smart bracketing.
+@item indent
+The number of spaces to use in indenting the code.
+@end table
+
+@end deftypefun
+
+@deftypefun void echo (str @var{string})
+@findex echo
+Display @var{string} to the current object, a player.
+@end deftypefun
+
+@deftypefun void quit ()
+@findex quit
+Disconnect the current object, a player.
+@end deftypefun
+
+@deftypefun void program ([obj @var{object}, str @var{methodname}])
+@findex program
+Enter programming mode.  This sets a flag on the player's descriptor
+such that all input from the player is diverted to a temporary file.
+When the player enters @samp{.}, the file is compiled, and then
+erased.  There can either be no arguments, in which case the server
+expects a series of objects, or two arguments, which should be the
+object and method to program.  In either case, the server currently
+uses a built-in set of permissions checks to determine whether the
+player may reprogram that object: either they must be in the object's
+@code{owners} list, or in @code{SYS_OBJ.wizards}.
+@end deftypefun
+
+@deftypefun num serverof (obj @var{object})
+@findex serverof
+Returns a number representing the server ID of @var{object}.  This ID
+is used internally by the server, and has no meaning except that ID
+zero is the local MUD.  So the statement
+
+@example
+if (!serverof(obj))
+    ...
+endif
+@end example
+
+@noindent
+would evaluate to true if @var{object} is a local object.
+@end deftypefun
+
+@deftypefun str servername (obj @var{object})
+@findex servername
+Returns a string representing the server name part of @var{object}.
+@end deftypefun
+
+@subsection Miscellaneous operations
+
+@cindex miscellaneous operations
+
+@deftypefun num random (num @var{n})
+@findex random
+Returns a random value between 1 and @var{n}.
+@end deftypefun
+
+@deftypefun num time ()
+@findex time
+Returns the current time, represented as the number of seconds that
+have elapsed since midnight on 1 January 1970, Greenwich Mean Time.
+@end deftypefun
+
+@subsection System functions
+
+@deftypefun void shutdown ()
+@findex shutdown
+Shuts down the MUD.  The database is written, remote servers
+disconnected, and the COOLMUD process terminates.
+@end deftypefun
+
+@deftypefun void dump ()
+@findex dump
+Syncs the cache to the database so that the database on disk is
+current.
+@end deftypefun
+
+@deftypefun void writelog (str @var{string})
+@findex writelog
+Writes @var{string} to the logfile, prepended by a timestamp.
+@end deftypefun
+
+@deftypefun num checkmem ()
+@findex checkmem
+Returns a string showing the amount of memory dynamically allocated,
+and how many chunks it was allocated in.  If the server was not
+compiled with @code{-DCHECKMEM}, this function will return
+@samp{"Memory checking disabled."}
+@end deftypefun
+
+@section Syntax for object code
+
+@cindex object code syntax
+
+The syntax for the code of an object is as follows:
+
+@example
+@code{object} @var{objectname}
+    @var{parent declarations}
+    @var{verb declarations}
+    @var{variable declarations}
+    @var{method declarations}
+@code{endobject}
+@end example
+
+The syntax for an object name is the same as for variables, given
+above.
+
+@subsection Parent declarations
+
+@cindex parents
+
+The syntax for the parent declarations is as follows:
+
+@example
+@code{parents} @var{parent-1} @code{,} @dots{} @var{parent-n} @code{;}
+@end example
+
+@subsection Verb declarations
+
+@cindex verbs
+
+To bind a verb to a method you use the @code{verb} declaration:
+
+@example
+@code{verb} @var{string} @code{=} @var{method} @code{;} 
+@code{verb} @var{string} @code{:} @var{string} @code{=} @var{method} @code{;} 
+@end example
+
+@subsection Variable declarations
+
+@cindex variables
+
+The syntax for the variable declarations is:
+
+@example
+@var{vartype} @var{var-1} @code{,} @dots{} @var{var-N} @code{;}
+@end example
+
+Where @var{vartype} is one of @code{num}, @code{str}, @code{list}, or
+@code{obj}.  You can have several lines of variable declarations, one
+for each different type, and you don't have to have variables of the
+same type all declared on the same line; you can have several variable
+declaration lines for the same type.
+
+@subsection Method declarations
+
+Method declarations look similar to object code:
+
+@example
+@code{method} @var{methodname}
+    @code{var} @var{local variable declarations}
+    @code{ignore} @var{errors}
+@code{endmethod}
+@end example
+
+@chapter Differences between COOL and MOO
+
+LambdaMOO objects consist of attributes, properties, and verbs.
+COOLMUD objects consist of variables and methods; there are no
+attributes.
+
+COOLMUD object variables and methods are similar to LambdaMOO
+properties and verbs.  With LambdaMOO, all properties can be accessed
+by other objects, as long as the permissions allow it, which they
+generally do except for special properties that need to be hidden.
+With LambdaMOO properties have an owner.  With COOLMUD, object
+variables can only be accessed if there is a method that provides
+acces, otherwise the object variable is inaccessible.  COOLMUD object
+variables don't have an owner, just the owners of the object.  With
+COOLMUD the object variables' methods that provide access to them also
+completely control any permission scheme.
+
+COOLMUD methods don't have a ``debug'' bit, methods can @code{ignore}
+specific errors if they want to.
+
+With COOLMUD command parsing is much more controlled by the objects.
+For the sake of example, let's ignore prepositions.  When a palyer
+types a command, some simple matching is done; all objects that have
+that ``verb'' defined on them have the method that's bound to that
+verb called.  The method is responsible for checking the arguments to
+see if they match its object; e.g., @code{args[2]} is typically the
+object and @code{args[1]} is the verb.  The method returns 1 to
+signify that the arguments didn't match for it and for the parser to
+continue calling methods on other objects.  The method returns 0 to
+specify that it was the desired object and the parser stops calling
+methods on the rest of the objects.
+
+With COOLMUD, verbs are ``bound'' to methods.  Unless a method is
+bound to a verb, it can't be accessed by a player.  With LambdaMOO
+there is a ``template'' specified for the arguments when creating a
+verb and the template @samp{this none this} is typically used to
+specify a verb that isn't to be accessed as a command typed by a
+player; that is, the verb will be used as a subroutine.  With COOLMUD
+you simply don't bind the method to a verb if you want it only used as
+a subroutine.
+
+COOLMUD treats assignments as statements, not expressions.  This means
+that you can't do looping constructs like
+
+@example
+while ((var = name.method) != someval)
+    @dots{}
+endwhile
+@end example
+
+@chapter Setting up a new COOLMUD
+
+(explain format of .cfg file.)
+
+@section Interconnecting COOLMUDs
+
+@iftex
+@unnumbered Function Index
+@printindex fn
+
+@unnumbered Variable Index
+@printindex vr
+
+@unnumbered Concept Index
+@printindex cp
+
+@contents
+@end iftex
+
+@bye
+
+Local Variables:
+makeinfo-options: "+fill-column 70 +no-split"
+fill-column: 70
+End:
