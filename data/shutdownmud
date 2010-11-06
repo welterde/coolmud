@@ -1,0 +1,6 @@
+#!/bin/sh
+# shutdownmud <dbase-prefix>
+# eg., shutdownmud west
+
+kill `cat cm.$1.pid`
+rm cm.$1.pid

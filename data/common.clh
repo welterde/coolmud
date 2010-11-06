@@ -1,0 +1,8 @@
+#define WESTERN_ROOM #13@west
+#define EXIT_EAST #19@west
+#define PUNCHING_BAG #20@west
+#define PAPER_BAG #21@west
+
+#define EASTERN_ROOM #13@east
+#define EXIT_WEST #19@east
+#define HAMMOCK #20@east

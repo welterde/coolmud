@@ -1,0 +1,1394 @@
+% \documentstyle[nfpalat]{newsfwarticle}
+\documentstyle{article}
+\begin{document}
+\newcommand{\hdr}[1]{\begin{center} \Large #1 \end{center}}
+\newcommand{\func}[1]{\tt #1}
+\newcommand{\funcarg}[1]{\tt \it #1}
+\newcommand{\keyword}[1]{\tt #1}
+\newcommand{\error}[1]{\tt #1}
+\newcommand{\COOLMUD}[0]{{\small COOLMUD}}
+\newcommand{\COOL}[0]{{\small COOL}}
+\newenvironment{code}{\begin{quote} \tt }{\end{quote}}
+\newcommand{\ind}{\hspace*{1em}}
+\title{Introduction to the COOL Programming Language}
+\author{Stephen F.\ White}
+\date{October 28, 1994}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2ex plus 2pt minus 1pt}
+\maketitle
+
+\section{Datatypes}
+
+There are six datatypes in \COOL: string ({\bf str}), number ({\bf num}), object
+({\bf obj}), list ({\bf list}), error ({\bf err}) and mapping ({\bf map}).
+
+The only compile-time checking done by \COOL\ is to ensure that
+any instance variables are initialized only from the correct
+constants.  Other than that, all type checking is done at run-time,
+with the exception {\error E\_TYPE} being raised if an error occurs in an
+operator or system function.
+
+\subsection{String ({\bf str})}
+
+Strings are enclosed in doublequotes (\verb+"+).
+The following are examples of string constants:
+\begin{code}
+"foo" \\
+"The rain in spain.\verb+\+n" \\
+"They call me \verb+\+"The Woodmaster\verb+\+", son."
+\end{code}
+String instance variables are declared as follows:
+\begin{code}
+str foo; \\
+str bar, baz; \\ 
+str zip = "The rain in spain.\verb+\+n";
+\end{code}
+
+\subsection{Number ({\bf num})}
+
+Numbers are long integers (typically in the range -2\^31 to 2\^31 - 1).
+\begin{code}
+num  a, n = -1034;
+\end{code}
+
+\subsection{Object ID ({\bf obj})}
+
+Object ID's consist of two parts:  the ID, and the servername.
+The following are values of type OBJ:
+\begin{code}
+\#5@joemud \\
+\#10@fredmud
+\end{code}
+If the object in question is on the local MUD, the server part may
+be omitted:
+\begin{code}
+\#7
+\end{code}
+represents object \#7 on the local MUD.  The value \#-1 is a special
+value, usually meaning ``nothing'', ``nowhere'', or some kind of error
+condition.
+
+\subsection{List ({\bf list})}
+
+Lists are heterogenous, ordered collections of other datatypes.
+They can be manipulated as unordered sets, using the setadd() and
+setremove() functions, or as ordered lists, using listinsert(),
+listappend(), listassign().  and listdelete().
+
+Typically lists are used to store things like the contents of a
+room (a list of OBJ), or a list of methods on an object (a list
+of STR).
+
+The elements of a list are enclosed by braces, and separated by commas.
+The following are examples of lists:
+
+\begin{tabular}{ll}
+\verb+{}+			 &	(the empty list) \\
+\verb+{1, 2, 3}+		 &	(a list of numbers)	 \\
+\verb+{"abc", "def", "ghi"}+ 	 & 	(a list of strings)	\\
+\verb+{ {1, 2}, {3, 4}, {5, 6} }+ &	(a list of lists) \\
+\verb+{1, "abc", #3}+ &			(a heterogenous list) \\
+\end{tabular}
+
+The \verb.+. and \verb.-. operators are overloaded for lists to
+perform the {\func setadd()} and {\func setremove()} functions,
+respectively.
+
+\subsection{Error ({\bf err})}
+
+Error values store the result of an operation.  The following is a list
+of the current errors and their meanings:
+
+\begin{tabular}{|l|l|}
+\hline
+Error Symbol &	Description \\
+\hline
+{\error E\_TYPE} &	Type mismatch \\
+{\error E\_ARGTYPE} &	Argument type mismatch \\
+{\error E\_NARGS} &	Incorrect number of arguments \\
+{\error E\_RANGE} &	Range error \\
+{\error E\_INVIND} &	Invalid indirection \\
+{\error E\_DIV}	 &	Division by zero \\
+{\error E\_MAXREC} &	Maximum recursion exceeded \\
+{\error E\_METHODNF} &	Method not found \\
+{\error E\_VARNF} &	Variable not found \\
+{\error E\_FOR}	 &	For variable not a list \\
+{\error E\_SERVERNF} &	Server not found \\
+{\error E\_SERVERDN} &	Server down \\
+{\error E\_OBJNF} &	Object not found \\
+{\error E\_MESSAGE} &	Message unparseable \\
+{\error E\_TIMEOUT} &	Timed out \\
+{\error E\_STACKOVR} &	Stack overflow \\
+{\error E\_STACKUND} &	Stack underflow \\
+{\error E\_PERM} &	Permission denied \\
+{\error E\_INTERNAL} &	Internal error \\
+{\error E\_FILE} &	File not found \\
+{\error E\_TICKS} &	Task ran out of ticks \\
+{\error E\_TERM} & 	Task terminated \\
+{\error E\_MAPNF} &	Mapping not found \\
+\hline
+\end{tabular}
+
+\subsection{Mapping ({\bf map})}
+
+Mappings are arrays which can be indexed by values of any type.  The
+most common use is indexing by strings, for use as associative arrays.
+ Each element of a mapping consists of two parts:  the key, and the
+data.  Indexing of mappings is done in exactly the same way as lists:
+
+\begin{code}
+map	a; \\
+
+a["name"] = "stephen"; \\
+a["cpus"] = 11; \\
+\end{code}
+
+Now indexing on {\tt name} or {\tt cpus} will return the values assigned:
+
+\begin{code}
+a["name"]		=> "stephen"	\\
+a["cpus"]		=> 11		\\
+a["foobar"]		=> E\_MAPNF	\\
+\end{code}
+
+\subsubsection{Initializing mappings}
+
+Mappings may be initialized using a constant mapping expression, which is
+of the form:
+
+\begin{code}
+[ {\em key1} => {\em value1}, {\em key2} => {\em value2}, \ldots ]
+\end{code}
+
+For example, the above assignments could be written as:
+
+\begin{code}
+map	a; \\
+
+a = ["name" => "stephen", "cpus" => 11]; \\
+\end{code}
+
+Of course, indexing on values of other types is possible also:
+
+\begin{code}
+a = [\#3 => "Object Number Three", E\_RANGE => "Value out of Range"];
+\end{code}
+
+You can even index on other associative arrays, but that's just perverse!
+
+\section{Variables}
+
+There are two kinds of variables:  method variables and object variables.
+Method variables are declared in methods, and are temporary.  They are
+created for the execution of the method, and are freed when execution
+is complete.  Object variables are permanent, and are used to store
+the state of an object (its name, location, etc).  Object variables
+are inherited by instances of an object.  Method variables are sometimes
+referred to as ``local'', and object variables as ``global''.
+
+An object's variables may only be assigned by that object's methods.
+The only way to retrieve or modify another object's variables is to
+send a message to that object.  For example, the ``location'' message
+says, ``give me your location'', and the ``moveto'' message says, ``move
+yourself to the following location''.
+
+Variables may be fixed type, in that they can store one type of
+value, or variable, so that they can store any.  Assigning the wrong
+type of value to a fixed-type variable raises {\error E\_TYPE}, a type
+mismatch.
+
+Currently, object variables can only be fixed-type, and method variables
+can only be variable type.  This may change in the future.  Both types of
+variables may be initialized in their declaration.
+
+\subsection{Examples}
+
+\begin{code}
+str name;
+\end{code}
+
+declares a fixed-type string variable called ``name''.
+
+\begin{code}
+num contents;
+\end{code}
+    
+declares a fixed-type list variable called ``contents''.
+
+\begin{code}
+var a, b;
+\end{code}
+
+declares a local variables ``a'' and ``b'' which may hold values of any type.
+
+\subsection{Built-In Variables}
+
+There are a number of tokens in \COOL\ which act like built-in variables.
+However, they may not be assigned to.  The following table lists them.
+
+\begin{tabular}{|l|l|l|}
+\hline
+Variable & Type & Value \\ 
+\hline
+{\keyword this} & {\keyword obj} & Object on which the current thread is acting  \\
+{\keyword player} & {\keyword obj} & Player object which initiated this thead \\
+{\keyword caller} & {\keyword obj} & Object which called the current method \\
+{\keyword args} & {\keyword list} & Arguments to the current method \\
+\hline
+\end{tabular}
+
+\section{Methods}
+
+\subsection{Declaring Methods}
+
+Methods consist of a {\tt method} declaration, variable and exception
+declarations, statements, and an {\tt endmethod} declaration.
+
+The simplest method of all is the null method:
+
+\begin{code}
+method foo \\
+endmethod
+\end{code}
+
+Methods describe the action to be taken when an object receives a certain
+message.  If a message is sent to an object for which it does not have a
+corresponding method, {\error E\_METHODNF} is raised.  Methods may be called by
+any other object, so any permissions checking must be done by the
+method itself.
+
+\begin{code}
+method add \\
+\ind return args[1] + args[2]; \\
+endmethod
+\end{code}
+
+\subsection{Blocked Methods}
+
+Sometimes it is desired that a method should be declared on an object, and
+non-overrideable by any of its children.  The keyword {\tt blocked} may be
+used in a method declaration to declare such a method.
+
+\begin{code}
+blocked method foo \\
+    \ind \ldots \\
+endmethod
+\end{code}
+
+Thus, any children of this object would have the ``foo'' method, but any
+``method foo'' declared on those children would be ignored.
+
+\section{Message Passing}
+
+Passing a message from one object to another is the only way in
+\COOLMUD\ for objects to interact.  Objects may not retrieve other
+objects' data, except by passing a message.  Similarly, objects may
+not set other objects' properties, except by passing a message.
+
+\subsection{Syntax}
+
+Message passing is accomplished with the `\verb+.+' operator:
+
+\begin{code}
+\#3@joemud.foo(1, 2, 3);
+\end{code}
+
+passes the message 'foo' to object \#3 on joemud, with the
+numeric arguments 1, 2, 3.
+
+\begin{code}
+var a; \\
+a = \#3.location();
+\end{code}
+
+sends the message 'location' to \#3 on the local mud, and stores the
+result in temporary variable a.  If there are no arguments, the
+brackets may be omitted, like so:
+    
+\begin{code}
+var a; \\
+a = \#3.location;
+\end{code}
+
+Note:	When no arguments are required, it's a good idea to use brackets
+	to indicate the type of message being passed.  If the message
+	will change the remote object or acts like a function, use brackets.
+	If the message will only retrieve data, use no brackets.
+
+\section{Verbs}
+
+Verb declarations are a simple way of attaching player commands to
+objects.  Verb declarations must appear in the declarations section
+of an object, before any method declarations.  A verb declaration
+is like a template, which reads from left to right.  On the left is
+the pattern to be matched, on the right is the method called if there
+is a match.  For example,
+
+\begin{code}
+verb "look" = look;
+\end{code}
+
+This defines a mapping between the command ``look'' and the ``look''
+method on the object.  When the object is checked for commands, the
+command ``look'' will cause the method named ``look'' on the object to
+be called.  Any arguments may follow the verb in this example, so
+the commands ``look fred'', ``look'', and ``look at the pretty flowers''
+would all match.  If further parsing is required, prepositions may
+be used (see below). If only a verb is specified, only the first word of
+the command will be checked; checking the arguments must be
+performed by the associated method.
+
+\subsection{Verb Aliasing}
+
+Multiple verbs may be listed in the same declaration, separated by
+spaces:
+
+\begin{code}
+verb "look examine" = look;
+\end{code}
+
+These act as aliases, so either ``look'' or ``examine'' will call the
+``look'' method.
+
+\subsection{Abbreviations}
+
+The asterisk character, *, may be used to indicate abbreviations:
+
+\begin{code}
+verb "l*ook" = look;
+\end{code}
+
+This will match the commands ``l'', ``lo'', ``loo'', and ``look''.
+
+The characters up to the asterisk {\em must} be typed in order for
+the command to match.  Characters after the asterisk are
+optional.  For example,
+
+\begin{code}
+verb "exa*mine" = examine;
+\end{code}
+
+would match ``exa'', ``exam'', etc., but not ``ex'' or ``e''.
+
+\subsection{Prepositions}
+
+In addition the the verb name, a preposition may be supplied:
+
+\begin{code}
+verb "hit" : "with" = hit;
+\end{code}
+
+Here, the colon separates the verb and preposition.  Only commands
+containing both the verb and that preposition in them will be
+matched:  ``hit joe with sledghammer'' and ``hit with book'' would
+match; ``hit'' by itself would not.  Multiple prepositions may
+also be used:
+
+\begin{code}
+verb "hit smack" : "with using" = hit;
+\end{code}
+
+Commands matching this template include:  ``hit using sword''  ``smack
+troll with emacs source", ``smack with fred'', etc.  No abbreviations
+may be used for prepositions.
+
+Any word or character may be used as a preposition, so emulating
+TinyMUD is possible:
+
+\begin{code}
+verb "@desc*ribe" : "=" = describe;
+\end{code}
+
+This hard-to-read declaration uses "=" as the preposition, so the
+command
+
+\begin{code}
+@desc me = groovy
+\end{code}
+
+would match.  Note that spaces around the "=" are required, however.
+A better way to do this would be to modify the ``parse'' method on
+the PLAYER object, but that's beyond the scope of this humble paragraph.
+
+\subsection{Inheritance of Verbs}
+
+All verbs declared by an object are inherited by instances of that
+object.  For example:
+
+\begin{code}
+object FOO \\
+\ind verb "hit" = hit; \\
+\ind method hit \\
+\ind \ind \ldots \\
+\ind endmethod \\
+endobject \\
+object BAR \\
+\ind parents FOO; \\
+endobject
+\end{code}
+    
+Now both FOO and BAR have ``hit'' verb available.  
+
+It is important to note that verb and method inheritance are separate,
+and both start from the instances and move up.  When a verb matches,
+the method is passed to the child, even if the verb was declared
+on the parent.  If the child object redefines the method, that
+method will be used instead.  In the example above, if BAR defined a
+``hit'' method, it would be used when BAR was ``hit''.  Redeclaring the
+verb isn't necessary.
+
+\subsection{The Method Part}
+
+We've seen how a verb template is set up, but so far no action
+can be taken because we don't have a method to be called.  When
+writing a method to be used as a verb, certain conditions apply.
+
+\subsubsection{Verb Arguments}
+
+When a method is called as a verb, the arguments to the verb
+are passed as strings in the ``args'' variable, as follows:
+
+\begin{tabular}{|l|l|l|}
+\hline
+                & Without Prep    & With Prep \\
+\hline
+{\tt args[1]}   & verb            & verb \\
+{\tt args[2]}   & direct object   & direct object \\
+{\tt args[3]}   &                 & preposition \\
+{\tt args[4]}   &                 & indirect object \\
+\hline
+\end{tabular}
+
+The parser itself does no matching of dobj or iobj.  The method
+itself is responsible for ensuring that the arguments specified
+refer to the correct object.  For example, consider a ``button''
+object with the verb declaration:
+
+\begin{code}
+verb "press" = press;
+\end{code}
+
+This declaration matches ``press button'', but also ``press'', ``press nancy'',
+etc.  In order to make sure the command refers to the button, we must
+explicitly match args[2], the direct object:
+
+\begin{code}
+	     method press /* verb */	\\
+\ind	         if (!this.match(args[2]))	/* not this object */	\\
+\ind \ind            return 1;		/* abort */ \\
+\ind	         endif \\
+\ind	         \ldots \\
+	     endmethod
+\end{code}
+
+Here we are assuming that the object has a method called ``match'',
+which returns 1 if the argument matches the object's name.  If
+the direct object doesn't match the object's name, the verb
+is exited with numeric value ``1''.  The return value from a
+verb method has a special meaning.  Returning a non-zero value
+indicates to the parser that no match was found, and the parser
+should continue to look for verbs on this and other objects.  Returning
+zero means that the match was successful, and no further parsing should
+be done.
+
+NOTE:  It is a good idea to comment the ``method'' declaration of a
+       method which is being used as a verb, to remind yourself of the
+       special conditions which apply to writing a verb (arguments,
+       return value).
+
+\section{Control Flow}
+
+\subsection{{\tt if} Statement}
+
+The {\tt if} statement is the conditional for \COOL\,
+and whose simplest form is:
+
+\begin{code}
+if ( {\em expression } ) \\
+\ind{\em statements } \\
+endif
+\end{code}
+
+If {\em expression } evaluates true, {\em statements } are executed.  Note that
+both the parentheses around the condition and the {\tt endif} are
+mandatory, and there is no `then' after the {\tt if}.  {\tt if\/}s may be
+nested infinitely.
+
+\subsubsection{Conditions}
+
+In addition to numeric 1 and 0, the following values may be used in
+the {\em expression } above.
+
+\begin{tabular}{|l|l|}
+\hline
+Type & Condition for ``true'' \\
+\hline
+{\keyword NUM} & Non-zero \\
+{\keyword STR} & Non-empty \\
+{\keyword LIST} & Non-empty \\
+{\keyword MAP} & Non-empty \\
+{\keyword OBJ} & Positive (ie., not \#-1) \\
+{\keyword ERR} & (All error values are FALSE) \\
+\hline
+\end{tabular}
+
+Note that the objects referenced by {\keyword OBJ} values may not
+actually exist, but as long they are positive and have a valid
+server id, \COOL\ will treat them as ``true''.
+
+\verb+&&+ and \verb+||+ are the boolean `and' and `or' operators. 
+\verb+!+ is the `not' operator.  They may be used to form boolean
+conditions such as:
+
+\begin{code}
+(a == 5 \&\& b != 0) \\
+(player.location == location \&\& !player.dead) \\
+(s1 \verb+||+ !s2)
+\end{code}
+
+The boolean operators have the same precedence as C.  They also
+``short-circuit'' in the same way that that they do in C.  The first
+false condition in an \verb|&&| expression will return a false result,
+and will cause short-circuit execution of the rest of the statement.
+The first true condition in a \verb+||+ expression will make the result
+true, and will short-circuit execution of the rest of the expression.
+
+\subsubsection{{\tt else} Statement}
+
+The {\tt else} construct allows a programmer to specify a set of statements
+to be executed if the condition in an {\tt if} statement evaluates false.
+
+\begin{code}
+if ( {\em expression } ) \\
+\ind{\em statements1 } \\
+else \\
+\ind{\em statements2 } \\
+endif
+\end{code}
+
+If {\em expression } evaluates true, {\em statements1 } are executed.
+Otherwise, {\em statements2 } are executed.
+
+\subsubsection{{\tt elseif} Statement}
+
+The {\tt elseif} statement may be used to test a series of
+conditions, without requiring another level of {\tt if}/{\tt endif}
+pairs.  Its function is mostly cosmetic.
+
+\begin{code}
+if ( {\em expression1 } ) \\
+\ind{\em statements1 } \\
+elseif ( {\em expression2 } ) \\
+\ind{\em statements2 } \\
+else \\
+\ind{\em statements3 } \\
+endif
+\end{code}
+
+If {\em expression1 } is true, {\em statments1 } are executed.  Otherwise,
+if {\em expression2 } is true, {\em statements2 } are executed.  Otherwise,
+{\em statements3 } are executed.  For example, the code:
+
+\begin{code}
+if (a == "who") \\
+\ind c = 1; \\
+else \\
+\ind if (a == "what") \\
+\ind \ind c = 2; \\
+\ind else \\
+\ind \ind if (a == "where") \\
+\ind \ind \ind c = 3; \\
+\ind \ind else \\
+\ind \ind \ind c = 0; \\
+\ind \ind endif \\
+\ind endif \\
+endif
+\end{code}
+
+could be instead written as:
+
+\begin{code}
+if (a == "who") \\
+\ind c = 1; \\
+elseif (a == "what") \\
+\ind c = 2; \\
+elseif (a == "where") \\
+\ind c = 3; \\
+else \\
+\ind c = 0; \\
+endif
+\end{code}
+
+\subsection{{\tt for} Statement}
+
+The {\tt for} statement allows the programmer to traverse a list of
+values.  It comes in two flavours.  The first flavour is for iterating
+over elements of a given list or string, and the second for iterating
+of values in a given range.  {\tt for} statements may be nested infinitely.
+
+
+\subsubsection{Iterating over a given list or string}
+
+\begin{code}
+for {\em variable } in ( {\em expression } ) \\
+\ind{\em statements } \\
+endfor
+\end{code}
+
+This construct sets {\em variable } to each element in
+{\em expression } in turn, and executes {\em statements } for
+each one.  {\em expression} must be an expression whose value
+is a list or a string.  If not, {\error E\_FOR} is raised.
+
+\subsubsection{Iterating over a list}
+
+Examples:
+
+\begin{code}
+for a in ( \{1, 2, 3\} ) \\
+\ind player.tell(tostr(a)); \\
+endfor
+\end{code}
+
+would set {\tt a} to 1, 2, and 3 in turn, and echo the result to
+the player.
+
+\begin{code}
+for item in ( player.contents ) \\
+\ind player.tell( item.name ); \\
+endfor
+\end{code}
+
+would set {\tt item} to each element of {\tt player.contents}
+and echo the name of each object to the player (assuming that
+``contents'', ``name'' and ``tell'' methods have been defined on the
+objects in question).
+
+\subsubsection{Iterating over a string}
+
+Example:
+
+\begin{code}
+for c in ("abcde") \\
+\ind \ldots \\
+endfor
+\end{code}
+
+would set c to ``a'', ``b'', ``c'', ``d'' and ``e'' in turn within
+the body of the loop.
+
+\subsubsection{Iterating over a range of values}
+
+This flavour sets a variable to an increasing range of numeric values:
+
+\begin{code}
+for {\em variable } in [ {\em expression1 } ..{\em expression2 } ] \\
+\ind{\em statements } \\
+endfor
+\end{code}
+
+This construct sets {\em variable } to each value in the given range,
+from {\em expression1 } to {\em expression2 }.  Both expressions
+must be integers, or {\error E\_TYPE} is raised.  For example,
+
+\begin{code}
+for n in [1..5] \\
+\ind \ldots \\
+endfor
+\end{code}
+
+would set {\tt n} to 1, 2, 3, 4, and 5.  If {\em expression2 } is less
+than {\em expression1}, the loop will not execute at all.
+
+\subsection{{\tt while} Statement}
+
+\begin{code}
+while ({\em expression} ) \\
+\ind {\em statements } \\
+endwhile
+\end{code}
+
+This construct executes {\em statements } while {\em expression }
+evaluates true.  For example:
+
+\begin{code}
+var	a; \\
+a = 5; \\
+while (a > 0) \\
+\ind echo(tostr(a)); \\
+\ind a = a - 1; \\
+endwhile
+\end{code}
+
+\subsection{{\tt do/while} Statement}
+
+\begin{code}
+do \\
+\ind {\em statements } \\
+while ({\em expression });
+\end{code}
+
+Same as the while statement, except that {\em expression } is tested at
+the end of the loop, instead of the beginning.  The loop is thus always
+executed at least once.
+
+\subsection{{\tt return} Statement}
+
+\begin{code}
+return {\em $[$ expression $]$ } ;
+\end{code}
+
+The {\tt return} statement returns {\em expression } to the calling
+function, and exits the current verb.  Returning a value to the command
+parser does nothing.
+
+\subsection{{\tt break} Statement}
+
+\begin{code}
+break {\em $[$ num $]$ } ;
+\end{code}
+
+The {\tt break} statement is used to exit from a loop, within the body of
+the loop.  The optional numeric constant indicates how many loops
+to break out of, in nested loops.
+
+\subsection{{\tt continue} Statement}
+
+\begin{code}
+continue {\em $[$ num $]$ } ;
+\end{code}
+
+The {\tt continue} statement is used to break out of the current iteration
+of a loop and start again at the top.  The optional numeric constant
+indicates which loop to restart (the default is 1).
+
+\section{Built-in Functions}
+
+\COOLMUD\ has a number of built-in functions.  These functions can be
+divided into roughly 7 groups:  functions for manipulating objects,
+dealing with players, miscellanous functions, thread functions, list
+manipulation functions, conversion functions, and wizard functions. 
+The following is a summary of the functions, followed by a more
+detailed description of each.
+
+\begin{tabular}{|l|l|}
+\hline
+Function & 		
+Description \\
+\hline \hline
+{\func clone()}	&
+Make an instance of {\keyword this} \\
+{\func destroy()} &
+Destroy {\keyword this} \\
+{\func chparents({\funcarg list })} &
+Change the inheritance of {\keyword this} \\
+{\func lock({\funcarg str })} &
+Place a named lock on {\keyword this} \\
+{\func add\_verb({\funcarg verb },{\funcarg prep },{\funcarg method })} &
+Add a verb to {\keyword this} \\
+{\func rm\_verb({\funcarg str })} &
+Remove a verb from {\keyword this} \\
+{\func rm\_method({\funcarg str })} &
+Remove a method from {\keyword this} \\
+{\func rm\_var({\funcarg str })} &
+Remove a variable from {\keyword this} \\
+{\func unlock({\funcarg str })} &
+Remove a named lock from {\keyword this} \\
+{\func verbs()} &
+Return a list of verbs on {\keyword this} \\
+{\func vars()} &
+Return a list of variables on {\keyword this} \\
+{\func methods()} &
+Return a list of methods on {\keyword this} \\
+{\func getvar({\funcarg str })} &
+Get a variable on {\keyword this}, by name \\
+{\func setvar({\funcarg str },{\funcarg value})} &
+Set a variable on {\keyword this}, by name \\
+{\func hasparent({\funcarg obj })} &
+Does {\keyword this} have {\funcarg obj } as a parent? \\
+{\func find\_method({\funcarg str })} &
+Find a method on {\keyword this} or ancestor \\
+{\func spew\_method({\funcarg str })} &
+Spew internal stack-machine code \\
+{\func list\_method({\funcarg str }, \ldots)} &
+Decompile the method {\funcarg str } to source \\
+{\func decompile()} &
+Decompile the object {\keyword this} to source \\
+{\func objsize()} &
+Return the size (in bytes) of {\keyword this} \\
+\hline
+{\func echo({\funcarg str })} &
+Display {\funcarg str } to {\keyword this} (player) \\
+{\func echo\_file({\funcarg str })} &
+Display a local file to {\keyword this} (player) \\
+{\func disconnect()} &
+Disconnect {\keyword this} (player) \\
+{\func program({\funcarg $[$ obj },{\funcarg method $]$ })} &
+Enter programming mode \\
+\hline
+{\func typeof({\funcarg var })} &
+Get the type of a value \\
+{\func lengthof({\funcarg var })} &
+Get the length of a list or string \\
+{\func serverof({\funcarg obj })} &
+Get the server \# of an {\funcarg obj } value \\
+{\func servername({\funcarg obj })} &
+Get the server name of an {\funcarg obj } value \\
+{\func servers()} &
+Return the list of known servers \\
+{\func explode({\funcarg str $[$ },{\funcarg sep $]$ })} &
+Break a string into a list of strings \\
+{\func time()} &
+Get the current time \& date \\
+{\func ctime({\funcarg $[$ num  $]$ })} &
+Convert numeric time to {\small ASCII} string \\
+{\func crypt({\funcarg str $[$ },{\funcarg salt $]$ })} &
+Encrypt a string, with optional salt \\
+{\func match({\funcarg template },{\funcarg str $[$ },{\funcarg sep $]$ })} &
+Match a string to a template (prefix) \\
+{\func match\_full({\funcarg template },{\funcarg str $[$},{\funcarg sep $]$ })} &
+Match a string to a template (full) \\
+{\func psub()} &
+Perform \%-variable substitutions \\
+{\func strsub({\funcarg with },{\funcarg what },{\funcarg str })} &
+Perform string substitution \\
+{\func pad({\funcarg str },{\funcarg length $[$},{\funcarg padchar }$]$)} &
+Pad/truncate a string\\
+{\func random({\funcarg num })} &
+Return a random number 1 ..{\funcarg num } \\
+{\func compile({\funcarg str },{\funcarg $[$ obj },{\funcarg method $]$ })} &
+Compile {\funcarg str } into an object or method \\
+\hline
+\end{tabular}
+
+% this table is too big!
+% maybe separate tables for each class of function would be better
+
+\begin{tabular}{|l|l|}
+\hline
+Function & 		
+Description \\
+\hline \hline
+{\func sleep({\funcarg num })} &
+Pause for {\funcarg num } seconds \\
+{\func kill({\funcarg num })} &
+Terminate thread {\funcarg num } \\
+{\func ps()} &
+Get a list of active threads \\
+\hline
+{\func setadd({\funcarg list },{\funcarg value })} &
+Add a value to a set, no duplicates \\
+{\func setremove({\funcarg list },{\funcarg value })} &
+Remove a value from a set \\
+{\func listinsert({\funcarg list },{\funcarg value $[$ },{\funcarg pos $]$ })} &
+Insert a value into a list \\
+{\func listappend({\funcarg list },{\funcarg value $[$ },{\funcarg pos $]$ })} &
+Append a value to a list \\
+{\func listassign({\funcarg list },{\funcarg value },{\funcarg pos })} &
+Assign a value to an element of a list \\
+{\func listdelete({\funcarg list },{\funcarg pos })} &
+Delete a value from a list \\
+\hline
+{\func tonum({\funcarg var })} &
+Convert a value to number type \\
+{\func toobj({\funcarg var })} &
+Convert a value to object type \\
+{\func tostr({\funcarg var })} &
+Convert a value to string  \\
+{\func toerr({\funcarg var })} &
+Convert a value to error type \\
+\hline
+{\func shutdown()} &
+Shut down the MUD \\
+{\func dump()} &
+Dump the database \\
+{\func writelog({\funcarg str })} &
+Write {\funcarg str } to the logfile \\
+{\func checkmem()} &
+Show memory usage \\
+{\func cache\_stats()} &
+Show memory cache statistics \\
+\hline
+\end{tabular}
+
+
+\subsection{Object Functions}
+
+All functions which perform operations on objects refer to the
+current object, {\keyword this}. There is no way to directly modify or
+get information about a different object.  This is done to
+ensure that an object's methods will work across inter-mud links (see
+``distrib'').  Also, it serves as a permissions system:  to clone
+an object, for example, you must ask the object to clone itself
+by sending it a message.
+
+\subsubsection{\func clone()}
+
+Clone the current object.  A new object is created, whose parent
+is the current object.  The new object's init method is called.
+Return value:  The object ID of the new object.  If the current
+object no longer exists (ie., has been destroyed), \#-1 is returned.
+
+\subsubsection{\func destroy()}
+
+Destroy the current object.  The object itself is responsible for cleaning
+up any references to itself prior to this call.  This might include
+removing any contained objects, re-parenting or destroying any
+instances of it, etc.
+
+\subsubsection{\func chparents({\funcarg list })}
+
+Change the parents of the current object to those specified in
+{\funcarg list}.  All variables and methods on the object itself
+remain intact, however any variables or methods it inherited from
+its old parents parents it may not inherit from the new. 
+{\funcarg list} must be a non-empty list, and must not cause any loops
+in the inheritance hierarchy (eg., an object may not have itself or one
+of its children as a parent).  Any children of the current object will
+also have their inheritance changed by this call, such that the new
+parents specified in the list will be ancestors of the children as well.
+
+\subsubsection{\func lock({\funcarg str })}
+
+This function is used to lock an object, to prevent another execution
+thread from modifying the object before the current thread is finished
+with it (see ``locking'').  The argument {\funcarg str } is the
+name of the lock to place on the object.  Locks placed by an execution
+thread remain in effect until a corresponding {\func unlock()} call, or until
+the method terminates.
+
+\subsubsection{\func add\_verb({\funcarg verb },{\funcarg prep },{\funcarg method })}
+
+Add a verb to the current object.  {\funcarg verb } is the name of the verb
+to add.  {\funcarg prep } is the preposition, or \verb+""+ for none.
+{\funcarg method } is the name of the method to call in the current
+object when the verb gets triggered.  The verb is added to the end of
+the object's verb list, unless a verb with the same name and no
+preposition exists, in which case it is inserted before that verb.
+This is to prevent a verb with no preposition masking one with
+a preposition.
+
+\subsubsection{\func rm\_verb({\funcarg str })}
+
+Remove the first verb named {\funcarg str } from the current object. 
+The argument may also be a string representing the number indexing the
+verb to be removed (indexed from 0).  eg.,
+\begin{verbatim}
+	rm_verb("3");
+\end{verbatim}
+would remove the 4th verb on the current object.
+
+\subsubsection{\func rm\_method({\funcarg str })}
+
+Remove {\funcarg str } from the current object.  Note that \COOLMUD\
+has special provision to allow a method to remove itself and continue
+executing.  It won't be actually destroyed until after the method finishes.
+
+\subsubsection{\func rm\_var({\funcarg str })}
+
+Remove the variable (property) named {\funcarg str } from the current object.
+
+\subsubsection{\func unlock({\funcarg str })}
+
+Remove the lock named {\funcarg str } from the current object.  If any
+execution threads are waiting for this lock to be removed, they will
+execute.
+
+\subsubsection{\func verbs()}
+
+Return a list of verbs on the current object.  Each element of the list
+is in turn a 3-element list, consisting of 3 strings:  the verb
+name, the preposition, and the method to call.
+
+\subsubsection{\func vars()}
+
+Return a list of variables (properties) on the current object.  Each
+element of the list is a string containing the name of the variable.
+
+\subsubsection{\func methods()}
+
+Return a list of methods on the current object.  Each element of the list
+is a string containing the name of the method.
+
+\subsubsection{\func getvar({\funcarg str })}
+
+Gets the value of the variable named {\funcarg str } on the current
+object.  Normally, one would just reference the variable in COOL code
+by name, but {\tt getvar()} allows the use of an arbitrary string to
+get the value of a variable.  Example:
+\begin{code}
+getvar ("abc" + "def")
+\end{code}
+would return the value of the variable named {\tt abcdef} on the current
+object.
+
+\subsubsection{\func setvar({\funcarg str },{\funcarg value })}
+
+Sets the value of the variable named {\funcarg str } on the current
+object to {\funcarg value }.  Again, this would usually be
+accomplished with assignment operator, but in certain cases (eg., the
+name of the variable must created at run-time with an expression),
+this function must be used.  If the variable does not exist, it is
+created.  Note that the type of the new variable is determined by
+{\funcarg value}, and may not later be changed.
+Example:
+\begin{code}
+setvar ("abc" + "def", 100);
+\end{code}
+would set the value of the variable named {\tt abcdef} on the current
+object to the numeric value 100.  If {\tt abcdef} did not exist, it
+would be created.
+
+\subsubsection{\func hasparent({\funcarg obj })}
+
+Returns a positive value if the current object has {\funcarg obj } as a
+parent.  This function looks recursively on all parents of the current
+object, so it will return 1 if the object has {\funcarg obj } as a
+parent anywhere in its inheritance tree, and 0 otherwise.
+
+\subsubsection{\func find\_method({\funcarg str })}
+
+Locates the method named {\funcarg str} on the current object, if one
+exists.  This activates the same method-searching algorithm as used
+when actually sending an object a message.  Returns the object ID of
+the object defining the method, or \#-1 if none is found.  (This was
+useful in building the {\keyword @list} command, for instance).
+
+\subsubsection{\func spew\_method({\funcarg str })}
+
+Returns a string containing the internal stack-machine code for method
+{\funcarg str }.  This code is pretty unintelligible unless your brain
+works in RPN.  Even then, some instructions are hard to figure out,
+and there's not much point.  Only for the habitually curious.
+
+\subsubsection{\func list\_method({\funcarg str $[$ },{\funcarg lineno $[$ }, {\funcarg fullbrackets $[$ }, {\funcarg indent $]$ $]$ $]$ })}
+
+Returns a string containing the decompiled code for method {\funcarg str }.
+This works by turning the stack machine code back into readable form.
+It does automatic indentation, line numbering, and smart bracketing (ie.,
+it will use the minimum number of brackets when decompiling an expression).
+The three optional arguments are numeric arguments which control the
+decompilation:
+
+\begin{description}
+\item [lineno] Turns line numbering on and off (default on).
+\item [fullbrackets] When on, dumb bracketing will be used in every
+		  expression.  Default is off, or smart bracketing.
+\item [indent] The number of spaces to use in indenting the code (default 2).
+\end{description}
+
+The string returned contains embedded newlines.
+
+\subsubsection{\func decompile()}
+
+Decompiles the entire current object back to source.  Returns a
+string, containing embedded newlines containing the source for the
+object.  Variables are shown auto-initialized to their current values.
+This function can be {\em very} CPU-intensive, if the object is large.
+
+\subsubsection{\func objsize()}
+
+Returns the size, on disc, of the current object.  This reflects the
+ideal size, and not the actual amount of memory or disc consumed by
+the objecct, which are subject to {\keyword malloc()} tax, dbm tax, etc.
+
+\subsection{Player Functions}
+
+These functions also work on {\keyword this}, the current object.  However, they
+assume that {\keyword this} is a connected player.  They will have no effect
+if on a non-player object, or a player object which isn't connected.
+
+\subsubsection{\func echo({\funcarg str })}
+
+Display {\funcarg str } to the current object.  Does nothing if the
+current object is not a connected player.
+
+\subsubsection{\func echo\_file({\funcarg str })}
+
+Read in the contents of the local file {\funcarg str}, and echo them,
+one like at a time, to the current object.  The file is located
+relative to RUNDIR (usu. bin/online) of the server's installation.
+
+\subsubsection{\func disconnect()}
+
+Disconnect the current object.
+
+\subsubsection{\func program($[${\funcarg obj },{\funcarg method } $]$)}
+
+Enter programming mode.  This sets a flag on the player's descriptor
+such that all input from the player is diverted to a temporary file.
+When the player enters '.', the file is compiled, and then erased.
+There can either be no arguments, in which case the server expects
+a series of objects, or two arguments, which should be the object
+and method to program.  In either case, the server currently
+uses a built-in set of permissions checks to determine whether the
+player may reprogram that object: either they must be in the object's
+owners list, or in SYS\_OBJ.wizards.
+
+\subsection{Miscellanous Functions}
+
+\subsubsection{\func typeof({\funcarg var })}
+
+Returns a number representing the type of {\funcarg var }.  This value
+may be checked against the pre-defined constants NUM, OBJ, STR, LIST
+and ERR.
+
+\subsubsection{\func lengthof({\funcarg var })}
+
+Returns a number representing the length of {\funcarg var }. 
+{\funcarg var } must be a string or list expression.
+
+\subsubsection{\func serverof({\funcarg obj })}
+
+Returns a number representing the server ID of {\funcarg obj }.  This ID is used
+internally by the server, and has no meaning except that ID zero is
+the local MUD.  So the statement
+\begin{code}
+if (!serverof(thingy)) \\
+\ind \ldots \\
+endif
+\end{code}
+would evaluate to true if thingy is a local object.
+
+\subsubsection{\func servername({\funcarg obj })}
+
+Returns a string representing the server name part of {\funcarg obj }.
+
+\subsubsection{\func servers()}
+
+Returns a list corresponding to the system object (\#0) at each remote
+server (eg., {\keyword \#0@remotemud}, {\keyword \#0@localmud}, etc).
+
+\subsubsection{\func explode({\funcarg str } $[$,{\funcarg sep } $]$)}
+
+Break {\funcarg str } into a list of strings.  By default, explode
+breaks on spaces; the optional second argument is the character to
+break on.
+
+\subsubsection{\func time()}
+
+Returns a numeric value representing the current date and time,
+given in seconds since 12:00 GMT, January 1, 1970.
+
+\subsubsection{\func ctime({\funcarg $[$ num  $]$ })}
+
+Returns a string representing the integer {\funcarg num } as
+an English date, or the current time if no argument is given.
+
+\subsubsection{\func crypt({\funcarg str $[$ },{\funcarg salt $]$ })}
+
+Encrypt a string.  This function uses UNIX's crypt() routine to encrypt
+a string.  Useful for password checking, etc.
+
+\subsubsection{\func match({\funcarg template },{\funcarg str } $[$,{\funcarg sep } $]$)}
+
+This function matches {\funcarg str } to {\funcarg template }.  {\funcarg str } should
+be a 1-word string which is compared against each word in {\funcarg template }. 
+If {\funcarg str } matches a substring of any word in {\funcarg template }, 1 is
+returned, otherwise 0 is returned.  The optional third argument is the
+separator to use when matching (default is a blank).
+
+\subsubsection{\func match\_full({\funcarg template },{\funcarg str } $[$,{\funcarg sep } $]$)}
+
+This function matches {\funcarg str } to {\funcarg template }, as above, except that
+{\funcarg str } must match an entire word in {\funcarg template }, not just a substring.
+
+\subsubsection{\func psub({\funcarg str })}
+
+This function substitutes the value of the local (method) variable
+"foo" for each instance of "\%foo" or "\%foo\%" in {\funcarg str}.  Example:
+
+\begin{code}
+foo = "system"; \\
+n = \#0; \\
+echo(psub("\%n is the \%foo object."));
+\end{code}
+would result in the output "\#0 is the system object".
+
+\subsubsection{\func strsub({\funcarg with },{\funcarg what },{\funcarg str })}
+
+Perform string substitution.
+
+\subsubsection{\func pad({\funcarg str },{\funcarg length $[$},{\funcarg padchar }$]$)}
+
+Pad/truncate a string.
+
+\subsubsection{\func random({\funcarg num })}
+
+Return a random number 1 ..{\funcarg num }
+
+\subsubsection{\func compile({\funcarg str },{\funcarg $[$ obj },{\funcarg method $]$ })}
+
+Compile {\funcarg str } into an object or method
+
+\subsection{List Functions}
+
+Lists are heterogenous collections of values, which may be treated
+as ordered lists, or unordered sets (see 'datatypes').  Choosing
+either the 'set' operations or 'list' operations determines how
+they are treated.
+
+Since \COOL\ has no concept of pointers (and all arguments are passed
+by value), none of the list operations can modify lists passed to
+them.  Instead, they return new lists with the indicated modifications
+performed.  So the code:
+\begin{code}
+	setadd(a, 3);
+\end{code}
+on its own does nothing.
+\begin{code}
+	a = setadd(a, 3);
+\end{code}
+on the other hand, adds the element 3 to the list variable {\tt a}, as
+intended.
+
+\subsubsection{\func setadd({\funcarg list },{\funcarg value })}
+
+This function adds {\funcarg value } to {\funcarg list }, as long as it's
+not already present.  Returns the new list.
+
+\subsubsection{\func setremove({\funcarg list },{\funcarg value })}
+
+Remove {\funcarg value } from {\funcarg list }, anywhere in the list. 
+Returns the new list.  
+
+\subsubsection{\func listinsert({\funcarg list },{\funcarg value $[$ }, {\funcarg pos $]$ })}
+
+Insert {\funcarg value } into {\funcarg list }.  By default, the new
+element is inserted at the beginning of the list.  If the optional
+numeric argument {\funcarg pos } is given, the element is inserted
+before position {\funcarg pos }.  Returns the new list.
+
+\subsubsection{\func listappend({\funcarg list },{\funcarg value $[$ }, {\funcarg pos $]$ })}
+
+Appends {\funcarg value } to the end of {\funcarg list }, or after position
+{\funcarg pos }, if given.  Returns the new list.
+
+\subsubsection{\func listassign({\funcarg list },{\funcarg value }, {\funcarg pos })}
+
+Replaces element at position {\funcarg pos } in {\funcarg list } with
+{\funcarg value }.  Returns the new list.
+
+\subsubsection{\func listdelete({\funcarg list },{\funcarg pos })}
+
+Deletes the element at position {\funcarg pos } in {\funcarg list }.
+Returns the new list.
+
+\subsection{Conversion Functions}
+
+These functions allow values of one datatype to be converted into
+values of another datatype.
+
+\subsubsection{\func tonum({\funcarg var })}
+
+Convert an obj, string, or error value into a numeric value.  Object
+values are converted by using the object ID portion as the new
+value.  Strings are parsed like the UNIX function atoi().  Error
+values return the internal ID of the error (which isn't much use
+except to trivia addicts).
+
+\subsubsection{\func toobj({\funcarg var })}
+
+Convert a num, string, or error value into an object ID value.  Numbers
+are converted by using the number as the object ID portion of the new
+value, and the local server for the server ID portion.  Strings are parsed,
+the same way \COOL\ itself parses:  \verb+#3+ or \verb+#3@foomud+ syntax.  Errors
+are converted by using the internal ID of the error as the object ID
+portion, and the local server for the server ID portion.
+
+\subsubsection{\func tostr({\funcarg var })}
+
+Convert a string, number, object, list or error type into a string
+value.  Strings are converted by enclosing them in doublequotes, and
+escaping any control chars with a backslash (\verb+\n+, \verb+\t+, etc).
+Numbers and object ID's are simply printed.  Lists are evaluated
+recursively, printing '{', followed by the list elements, separated by
+commas, and then '}'.  Errors are converted into a string representing
+the error identifier (\verb+E_TYPE+ becomes \verb+"E_TYPE"+).
+
+\subsubsection{\func toerr({\funcarg var })}
+
+Convert a string, number, or object value into an error value.
+Strings are parsed, the same way \COOLMUD\ parses errors (\verb+"E_TYPE"+
+becomes \verb+E_TYPE+).  Numbers are converted by using the number as
+the internal error ID.  Object values are converted by using the
+object ID portion as the error ID.
+
+\subsection{Task Functions}
+
+\subsubsection{\func sleep({\funcarg num })}
+
+Pause for {\funcarg num } seconds
+
+\subsubsection{\func kill({\funcarg num })}
+
+Terminate thread {\funcarg num }
+
+\subsubsection{\func ps()}
+
+Get a list of all active threads on the MUD.  Returns a list of lists,
+in which each element represents a thread in an 11-element list of the
+form:
+
+\begin{code}
+{ msgid, age, ticks, player, this, on, caller, \\
+args, methodname, blocked\_on, timer }
+\end{code}
+
+\begin{description}
+\item [msgid] The message identifier of the current thread.
+\item [age] The "depth" of the message in recursive calls.
+\item [ticks] The number of ticks used by the thread so far.
+\item [player] The player who typed the command that initiated this thread.
+\item [on] The object on which the method which is executing is defined.
+\item [caller] The object which called this method.
+\item [args] The arguments to this method, when called.
+\item [methodname] The name of the currently-executing method.
+\item [blocked\_on] A numeric identifier, indicating the state of the
+                   currently-executing thread.
+\item [timer] A numeric value, indicating the time at which the current
+              thread will resume, or expire (depending on state).
+\end{description}
+
+\subsection{Wizard Functions}
+
+All wizard functions check that the object calling them is a wizard
+by looking in SYS\_OBJ.wizards
+
+\subsubsection{\func shutdown()}
+
+Shut down the MUD.  The database is written, remote servers disconnected,
+and the \COOLMUD\ process terminates.
+
+\subsubsection{\func dump()}
+
+Dump the database.
+
+\subsubsection{\func writelog(\funcarg{str })}
+
+Write {\funcarg str } to the logfile.  The string is prefixed by the
+current date and time.
+
+\subsubsection{\func checkmem()}
+
+Returns a string showing the amount of memory dynamically allocated,
+and how many chunks it was allocated in.  If the server was not
+compiled with -DCHECKMEM, this function will return ``Memory checking
+disabled.''
+
+\subsubsection{\func cache\_stats()}
+
+Returns a string with embedded newlines containing the current statistics
+of the object-paging cache.  Currently the output looks like this:
+
+\begin{verbatim}
+cache stats, last 24 sec.:
+  writes: 8           reads: 161  
+  dbwrites: 0         dbreads: 10   
+  read hits: 151      active hits: 126  
+  write hits to dirty cache: 6    
+  deletes: 0          checks: 18   
+  resets: 11          syncs: 0         objects: 161  
+\end{verbatim}
+
+\end{document}

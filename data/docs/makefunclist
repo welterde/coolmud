@@ -1,0 +1,2 @@
+#!/bin/sh
+./listfuncs cool-prog-man-2.2.0-prelim.tex | sort | ./fixlist

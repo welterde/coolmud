@@ -1,0 +1,64 @@
+CHANGES		- changes between this version of COOLMUD and the previous one
+COPYING		- the GNU General Public License, Version 2
+COPYRIGHT	- copyright information
+README		- this file (doncha love it)
+src/		- source for COOLMUD
+bin/		- contains the source for COOL databases.  also where the
+		  the COOLMUD executables are placed.
+
+To install coolmud:
+
+1)  Type "make".
+    That should be all you need to do to compile the source.  The
+    Makefile will:
+    1.1)  Run the gnu configure script in the current directory,
+	  automatically configuring the Makefiles for your system.
+    1.2)  cd to the src directory, and make the bin/cm executable.
+    1.3)  cd to the bin directory, and make the database files.
+
+2)  Start the server by typing
+	./cm <dbaseprefix>
+    For example,
+	./cm west
+    The server will look for <prefix>.db, <prefix>.dir, <prefix>.pag, and
+    <prefix>.cfg.  <prefix>.cfg should contain the names of any remote
+    servers, plus cache configuration parameters.  (You may also use the
+    'restart' shell script to start cm; see bin/restart).
+
+If step 1.2 fails, you may need to edit src/Makefile or src/config.h
+for your system.
+
+If step 1.3 fails, you may need to edit bin/Makefile for your system.
+If working correctly, bin/Makefile will create three files for each
+database:  a .db, .dir and .pag file.  COOLMUD uses a dbm-format dbase. 
+
+NOTE:  It's normal to see the message "SYS_OBJ:  #0 not found"
+twice in the compilation of each database.
+
+WARNING:  New versions of COOLMUD may not have compatible .db formats.
+Therefore, if you want to update your server to a new version, do a
+flatfile dump of the database with the *old* version of the server, eg:
+    ./cm west -d west.dump
+Then recompile the server, and reload the dumpfile with the new version:
+    ./cm west -f west.dump
+
+COOLMUD has been successfully compiled under SunOS 4.1, Ultrix 4.2,
+BSD, Linux, Dynix/PTX, Irix and HPUX, and on MicroVAX-II,
+DECsystem5000, Sparc, 386, 486, Sequent, Iris Indigo and NeXT
+architectures.
+
+If you make any changes or plan to redistribute the source to
+COOLMUD, _check the COPYRIGHT and COPYING files first_.
+
+Bug reports should:
+
+o   contain the COOLMUD version number, machine architecture, operating
+    system, and conditions of error.
+o   consist of a stack trace from dbx or gdb.
+o   be sent to sfwhite@sciborg.uwaterloo.ca, with 'COOLMUD' in the
+    Subject: line.
+o   be descriptive.  The more information you give me, the better chance
+    I have of finding and fixing the bug.
+
+Stephen White
+sfwhite@undergrad.math.uwaterloo.ca

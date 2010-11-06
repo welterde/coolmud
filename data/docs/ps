@@ -1,0 +1,23 @@
+
+_msgid_       The message identifier of the current thread.
+
+_age_       The "depth" of the message in recursive calls.
+
+_ticks_       The number of ticks used by the thread so far.
+
+_player_       The player who typed the command that initiated this thread.
+
+_on_       The object on which the method which is executing is defined.
+
+_caller_       The object which called this method.
+
+_args_       The arguments to this method, when called.
+
+_methodname_       The name of the currently-executing method.
+
+_blocked_on_       A numeric identifier, indicating the state of the
+                   currently-executing thread.
+
+_timer_       A numeric value, indicating the time at which the current
+              thread will resume, or expire (depending on state).
+

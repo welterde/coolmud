@@ -1,0 +1,2 @@
+#!/bin/sh
+cat $1 | awk '{ printf "%s\\n", $0 }'

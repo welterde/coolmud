@@ -1,0 +1,206 @@
+player commands:
+
+drop/throw	<object>
+Place an object on the ground.  "drop all" will empty your inventory.
+
+get/take	<object>
+Pick up an object.  "get all" will attempt to pick up everything (and
+everyone!) in the room.
+
+help		[<topic>]
+Give help on a command or function (theoretically).
+
+home		
+Go home.
+
+inventory
+Show what you're carrying.
+
+look/examine	[<object>]
+Look at an object.
+
+news		[<topic>]
+Give up-to-the-minute mud news on a given topic (theoretically).
+
+page		<player> [ with <message> ]
+Tell a player where you are, or give them a short message.
+
+@password/password	<oldpassword> to <newpassword>
+Change your password.
+
+pose		<message>
+Prepend <message> with your name, and display it to everyone in the
+room.
+
+quit/@quit
+Quit the mud.
+
+rwho
+Show who is on all the coolmuds in the coolnet.
+
+say		<message>
+Say something to everyone in the room.
+
+who/@who	[<player>]
+Show who is online, showing how long they've been connected to the mud
+("on for") and how long since they last typed a command ("idle").
+
+whisper		<message> to <player>
+Send a private message to someone.  If you want the message to be protected
+(ie., if it contains the word "to"), enclose it in quotes:
+
+	whisper 	"give it to bob." to fred
+
+wizards
+Show the current list of wizards.
+
+builder commands:
+
+@addowner	<player> to <object>
+Give <player> ownership of <object>.  You must be an owner of <object>.
+
+@addparent	<object1> to <object2>
+Add <object1> to the list of parents of <object2>.  You must own <object2>,
+and own <object1> or <object1> must be public.
+
+@clone		<object> [ named <name> ]
+Create a child of <object>, optionally with the name <name>.  The newly-
+created object is passed the "init" message, with the argument <name>.  
+
+@create		<name>
+Create a Generic Thing, with the name <name>.  Equivalent to:
+	@clone $thing named <name>
+
+@decompile 	<object>
+Decompile the object <object> back into readable source form.  This lists
+all variables (with initial values), verbs, and methods of the object.
+Warning:  this can be quite large, for objects such as $player.
+
+@destroy	<object>
+Destroy an existing object.
+
+@dig		<name>
+Create a new room, with the name <name>.  Equivalent to:
+	@clone $room named <name>
+
+@find		[ <string> ]
+Show all objects you own, or all objects you own which match <string>.
+
+@link		<exit> to <room>
+Link the exit named <exit> to the room <room> (usually specified by object #).
+
+@list		<method> on <object>
+List the source for the method named <method> on the given <object>. 
+
+@open		<exit>	[ to <room> ]
+Open an exit, and optionally link it to <room>.
+
+@methods	<object>
+List all the methods on <object>, sorted alphabetically.
+
+@mutate		<object> to/into <parent>
+Make <parent> the only parent of <object>.  Any existing variables attached
+to <object> will still remain attached.  The "init" method is *not* called,
+so the object may not get the appropriate variables.
+
+@publish	<object>
+Set <object> public, so that anyone may @show, @methods, @list, @clone
+etc the object.  Basically allows "world read permission" on the object.
+You must own <object>.
+
+@unpublish	<object>
+Set <object> non-public, so that only the owner(s) may @show, @methods,
+@list, etc it.  You must own <object>.
+
+@rmparent	<parent> from <object>
+Remove <parent> from the parents lists of <object>.  <object> retains
+any variables inherited from <parent>.
+
+@rmowner	<player> from <object>
+Remove ownership of <object> by <player>.  You must own <object>.
+Note that when an object has no owners, it may be manipulated/destroyed
+by anyone.
+
+@set		<object>.<variable> to <value>
+Set the string variable <property> to <value>.  You must own <object>.
+(Ed note:  this syntax is grotty, since object.foo really means the
+method foo, not the variable foo).
+
+@show		<object>
+Show the the parents list, and the values of all the variables on
+<object>.  Note that any variables which are inherited from parents
+will not be shown directly.  You must own <object>, or it must be
+public.
+
+@spew		<method> on <object>
+Show the internal stack machine code for the method <method> on <object>.
+Really only useful for trivia junkies.
+
+@teleport	<object> to <destination>
+Move an object to a new location.
+
+@verbs		<object>
+Show all the verbs on <object>, and the methods called.
+
+programmer commmands:
+
+eval		<code>
+Evaluate one or more statements of COOL code.  The return value is displayed.
+Eg.,
+	;return "abc" + "def";
+	--> "abcdef"
+
+@program	[ <method> on <object> ]
+With no arguments, the @program command accepts code for 1 or more COOL
+objects.  With arguments, it reprograms the method <method> on <object>.
+Code is accepted until a single line containing "." is entered.
+
+@ps	[ -a ]
+Show information about tasks running on the mud.  By default, only
+tasks running under your control are displayed.  With the -a option,
+all tasks are displayed.
+
+@kill		<task>
+Halt the task with ID <task>.
+
+@verb		<verb> <method> on <object>
+Add a new verb named <verb> to <object>, which will call <method> when
+triggered.
+
+@rmverb		<verb> on <object>
+Remove <verb> from <object>.  You must own <object>.
+
+@rmmethod	<method> on <object>
+Remove <method> from <object>.  You must own <object>.
+
+@rmvar		<variable> on <object>
+Remove <variable> from <object>.  You must own <object>.
+
+wizard commands:
+
+@wizard		<player>
+Give <player> wizardly powers.
+
+@dewizard	<player>
+Revoke wizardly powers for <player>.
+
+@force		<player> to <command>
+Force <player> to execute <command>.
+
+@mem
+Show memory usage of the mud.
+
+@cachestats/@cs
+Show object allocation and cache statistics for the mud.
+
+@visitors
+Show all remote objects which are inside local objects.
+
+@boot		<player>
+Kick <player> off the mud.
+
+@shout		<message>
+Send <message> to all players on the mud.
+
+@shutdown
+Shut down the mud.

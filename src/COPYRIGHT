@@ -1,0 +1,44 @@
+The majority of this software was written by Stephen F. White and is
+covered under the GNU GPL.  See the file "COPYING" for details.
+
+The database layer (dbmchunk.c, cache.c, db_setup.h, db_config.h)
+is (c) 1992 Marcus J. Ranum, and was written by him.
+
+Portions of the network code (netio.c, serverio.c, playerio.c)
+were written by the following people, and are protected by the
+following copyright.
+
+Copyright (c) 1989-1993 by David Applegate, James Aspnes, Timothy Freeman,
+			   and Bennet Yee
+
+This material was developed by the above-mentioned authors.
+Permission to copy this software, to redistribute it, and to use it
+for any purpose is granted, subject to the following restrictions and
+understandings.
+
+1.  Any copy made of this software must include this copyright notice
+in full.
+
+2.  Users of this software agree to make their best efforts (a) to
+return to the above-mentioned authors any improvements or extensions
+that they make, so that these may be included in future releases; and
+(b) to inform the authors of noteworthy uses of this software.
+
+3.  All materials developed as a consequence of the use of this
+software shall duly acknowledge such use, in accordance with the usual
+standards of acknowledging credit in academic research.  In addition,
+the text 'COOLMUD created by Stephen White.' must appear in all
+login screens.
+
+4. The authors have made no warrantee or representation that the
+operation of this software will be error-free, and the authors are
+under no obligation to provide any services, by way of maintenance,
+update, or otherwise.
+
+5. In conjunction with products arising from the use of this material,
+there shall be no use of the names of the authors, of Carnegie-Mellon
+University, or the University of Waterloo, nor of any adaptation
+thereof in any advertising, promotional, or sales literature without
+prior written consent from the authors, Carnegie-Mellon University
+and the University of Waterloo in each case, other than that specified
+in paragraph 3.

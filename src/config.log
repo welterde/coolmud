@@ -1,0 +1,23 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+Undefined			first referenced
+ symbol  			    in file
+herror                              /tmp/cca003zO1.o
+ld: fatal: Symbol referencing errors. No output written to conftest
+Undefined			first referenced
+ symbol  			    in file
+index                               /tmp/cca003zY1.o
+ld: fatal: Symbol referencing errors. No output written to conftest
+Undefined			first referenced
+ symbol  			    in file
+random                              /tmp/cca004061.o
+ld: fatal: Symbol referencing errors. No output written to conftest
+Undefined			first referenced
+ symbol  			    in file
+getdtablesize                       /tmp/cca0040G1.o
+ld: fatal: Symbol referencing errors. No output written to conftest
+ld: fatal: library -linet: not found
+ld: fatal: File processing errors.  No output written to conftest
+ld: fatal: library -ldbm: not found
+ld: fatal: File processing errors.  No output written to conftest

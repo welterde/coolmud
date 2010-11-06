@@ -1,0 +1,7 @@
+#!/bin/sh
+# restart <dbase-prefix>
+# eg., restart west
+
+LOGDIR=/var/writable/games/coolmud
+./cm $1 >> $1.log 2>&1 &
+echo $! > cm.$1.pid

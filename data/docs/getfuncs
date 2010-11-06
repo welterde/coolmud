@@ -1,0 +1,48 @@
+#!/usr/bin/perl
+
+$started = 0;
+while(<>) {
+    if (/\\subsubsection{\\func (.*)\((.*)\)}/) {
+	if ($started) {
+	    close(OUT);
+	} else {
+	    $started = 1;
+	}
+	$name = $1;
+	$args = $2;
+	$name =~ s/\\//;
+	open(OUT, "| fmt >$name.txt") || die "Couldn't open $name.txt: $!\n";
+#	open(OUT, ">$name.txt") || die "Couldn't open $name.txt: $!\n";
+	$args =~ s/{\\funcarg(\W*)(\S*)([^}]*)}/$1_$2_$3/g;
+	$args =~ s/\$//g;
+	`ln -s $name.txt "$name().txt"`;
+	print OUT "Function:  $name()\n\n";
+	print OUT "Syntax:    $name($args)\n\n";
+#	print "$name()\n";
+    } elsif (/\\section{/) {
+	$started = 0;
+    } elsif (/\\subsection{/) {
+	$started = 0;
+    } elsif (/\\subsubsection{/) {
+	$started = 0;
+    } elsif (/\\begin{verbatim|description}/) {
+	close OUT;
+	open(OUT, ">>$name");
+    } elsif (/\\end{verbatim}/) {
+	close OUT;
+	open(OUT, "| fmt >>$name.txt");
+    } elsif ($started) {
+	s/\\verb\+([^\+]*)\+/$1/g;
+	s/\\bf {(.*)}/$1/g;
+	s/{\\tt (.*)}/$1/g;
+	s/\\item \[(.*)\]/\n_$1_      /g;
+	s/\\ldots/.../g;
+	s/{\\keyword (.*)}/$1/g;
+	s/{\\em (.*)}/\*$1\*/g;
+	s/{\\funcarg\s*(\S*)\s*}/_$1_/g;
+	s/{\\func\s*(\S*)\s*}/$1/g;
+	s/\\(begin|end){(.*)}//g;
+	s/\\[a-zA-Z]*//g;
+	print OUT $_;
+    }
+}

@@ -1,0 +1,18 @@
+- move @describe to $player
+- write dnamec, inamec
+- @allverbs, @allmethods, @showall
+- locks
+- $furniture:  a proper %sub for dname?  how to do this..
+  - you can see yourself on it
+  - sub_location
+- pass() to (arbitrary object)
+- do locks
+- @show object.property
+- @show property on object
+- @list object.method
+- @list object:method (ugh)
+- @listv*erb object:verb  (ugh)
+- @listv*erb object.verb  (ugh)
+- @listv*erb object
+- @which <cmd>
+- fix @list cmd

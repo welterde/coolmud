@@ -1,0 +1,4057 @@
+object #1
+  num  proper_name = 0;
+  list dark_vars = {};
+  list light_vars = {};
+  str  name = "Root Object";
+  list write_ok = {};
+  obj  sublocation = #-1;
+  list owners = {#11};
+  num  public = 1;
+  num  dark = 0;
+  num  safe = 0;
+  str  aliases = "";
+
+  verb "@rename" : "to" = rename_verb;
+
+  method padl
+    var retstr, padchar;
+    ignore E_RANGE;
+    if (args[3])
+      padchar = args[3][1];
+    else
+      padchar = " ";
+    endif
+    if (lengthof(args[1]) > tonum(args[2]))
+      return pad(@args);
+    endif
+    retstr = pad(padchar, args[2] - lengthof(args[1]) - 1, padchar);
+    retstr = retstr + args[1];
+    return retstr;
+  endmethod
+
+  method list_method
+    var code, parent;
+    ignore E_METHODNF;
+    if (!this.can_read("", caller))
+      raise E_PERM;
+    endif
+    code = list_method(@args);
+    if (code || code == "")
+      return code;
+    endif
+    parent = find_method(args[1]);
+    if (parent)
+      code = parent.list_method(@args);
+      if (code || code == "")
+        return "That object does not define that method, but its ancestor " + parent.id + " does:\n" + code;
+      endif
+    endif
+    return "That object does not define that method.";
+  endmethod
+
+  method event_exit
+    return 0;
+  endmethod
+
+  method find_method
+    var code, parent;
+    ignore E_METHODNF;
+    if (!this.can_read("", caller))
+      raise E_PERM;
+    endif
+    code = list_method(@args);
+    if (code)
+      return toobj(this);
+    endif
+    parent = find_method(args[1]);
+    if (parent)
+      return toobj(parent);
+    endif
+    return #-1;
+  endmethod
+
+  method inamec
+    if (proper_name)
+      return name;
+    elseif (name[1] in "aeiou")
+      return "An " + name;
+    else
+      return "A " + name;
+    endif
+  endmethod
+
+  method destroy
+    var owner;
+    if (this.can_write("", caller))
+      for owner in (owners)
+        owner.rm_creation(this);
+      endfor
+      destroy();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method id
+    return name + "(" + tostr(this) + ")";
+  endmethod
+
+  method rename_verb
+    var r;
+    ignore E_RANGE;
+    if (!this.match(args[2]))
+      return 1;
+    elseif (!this.can_write("name", caller))
+      player.tell("You can't rename that.");
+      return 0;
+    endif
+    r = this.set_name(args[4]);
+    if (r == E_RANGE)
+      player.tell("You can't use that new name.");
+    else
+      player.tell("Name set.");
+    endif
+  endmethod
+
+  method announce
+    return 0;
+  endmethod
+
+  method setvar
+    if (this.can_write(args[1], caller))
+      setvar(args[1], args[2]);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method set_owners
+    raise E_PERM;
+  endmethod
+
+  method list_method_brackets
+    return list_method(args[1], 1, 1);
+  endmethod
+
+  method add_verb
+    if (!this.can_write("", caller))
+      raise E_PERM;
+    else
+      return add_verb(args[1], args[2], args[3]);
+    endif
+  endmethod
+
+  method english_list_str
+    var item, i, thelist, txt;
+    txt = "";
+    thelist = args[1];
+    txt = thelist[1];
+    for i in [2..lengthof(thelist)]
+      if (i == lengthof(thelist))
+        txt = txt + " and " + thelist[i];
+      else
+        txt = txt + ", " + thelist[i];
+      endif
+    endfor
+    return txt;
+  endmethod
+
+  method clone
+    var new;
+    if (!this.can_write("", caller))
+      raise E_PERM;
+    else
+      new = clone();
+      new.init;
+      if (args)
+        new.set_name(args[1]);
+      endif
+      return new;
+    endif
+  endmethod
+
+  method publish
+    if (!this.can_write("public", caller))
+      raise E_PERM;
+    else
+      public = 1;
+    endif
+  endmethod
+
+  method name
+    return name;
+  endmethod
+
+  method methods
+    if (this.can_read("", caller))
+      return methods();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method add_owner
+    var dummy;
+    if (this.can_write("owners", caller))
+      owners = owners + args[1];
+      dummy = args[1].add_creation(this);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method add_parent
+    if (this.can_write("parents", caller))
+      raise E_PERM;
+    else
+      chparents(parents + args[1]);
+    endif
+  endmethod
+
+  method chparents
+    if (!this.can_write("parents", caller))
+      raise E_PERM;
+    else
+      chparents(args[1]);
+    endif
+  endmethod
+
+  method init
+    if (this == $root)
+      this.add_owner(#11);
+    elseif (this.can_write("", caller))
+      owners = {};
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method rm_method
+    if (!this.can_write("", caller))
+      raise E_PERM;
+    else
+      return rm_method(args[1]);
+    endif
+  endmethod
+
+  method rm_var
+    if (!this.can_write(args[1], caller))
+      raise E_PERM;
+    else
+      return rm_var(args[1]);
+    endif
+  endmethod
+
+  method spew_method
+    var code;
+    ignore E_METHODNF;
+    if (!this.can_read("", caller))
+      raise E_PERM;
+    endif
+    code = spew_method(args[1]);
+    if (code == E_METHODNF)
+      return "That object does not define that method.";
+    else
+      return code;
+    endif
+  endmethod
+
+  method getvar
+    if (this.can_read(args[1], caller))
+      return getvar(args[1]);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method sublocation
+    return sublocation;
+  endmethod
+
+  method rm_owner
+    var dummy;
+    if (this.can_write("owners", caller))
+      owners = owners - args[1];
+      dummy = args[1].rm_creation(this);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method keys
+    var keylist, i;
+    keylist = {};
+    for i in (getvar(args[1]))
+      keylist = keylist + i;
+    endfor
+    return keylist;
+  endmethod
+
+  method sdesc
+    return "You see " + this.iname + " here.";
+  endmethod
+
+  method owners
+    return owners;
+  endmethod
+
+  method event_entry
+    return 0;
+  endmethod
+
+  method unpublish
+    if (!this.can_write("public", caller))
+      raise E_PERM;
+    else
+      public = 0;
+    endif
+  endmethod
+
+  method public
+    return public;
+  endmethod
+
+  method rm_verb
+    if (!this.can_write("", caller))
+      raise E_PERM;
+    else
+      return rm_verb(args[1]);
+    endif
+  endmethod
+
+  method decompile
+    if (!this.can_read("", caller))
+      return E_PERM;
+    endif
+    return decompile();
+  endmethod
+
+  method dark
+    return dark;
+  endmethod
+
+  method show
+    var vars, item, value, id;
+    ignore E_SERVERDN, E_OBJNF;
+    player.tell(this.id + "   Size:  " + tostr(objsize()) + " bytes");
+    if (parents)
+      player.tell("Parents:  " + tostr(parents));
+    else
+      player.tell("No parents.");
+    endif
+    vars = sort(vars());
+    if (vars)
+      for item in (vars)
+        if (!this.can_read(item, caller))
+          continue;
+        endif
+        value = getvar(item);
+        if (typeof(value) == 2)
+          id = value.id;
+          if (typeof(id) == 0)
+            player.tell("  " + item + ":  " + id);
+          else
+            player.tell("  " + item + ":  " + tostr(value));
+          endif
+        else
+          player.tell("  " + item + ":  " + tostr(value));
+        endif
+      endfor
+    else
+      player.tell("No vars.");
+    endif
+  endmethod
+
+  method dname
+    if (proper_name)
+      return name;
+    else
+      return "the " + name;
+    endif
+  endmethod
+
+  method dnamec
+    if (proper_name)
+      return name;
+    else
+      return "The " + name;
+    endif
+  endmethod
+
+  method set_aliases
+    if (!this.can_write("aliases", caller))
+      player.tell("You can set aliases on that!");
+      return 0;
+    endif
+    aliases = args[1];
+    player.tell("Aliases set.");
+  endmethod
+
+  method english_list
+    var item, i, thelist, txt;
+    txt = "";
+    thelist = args[1];
+    txt = thelist[1].name;
+    for i in [2..lengthof(thelist)]
+      if (i == lengthof(thelist))
+        txt = txt + " and " + thelist[i].name;
+      else
+        txt = txt + ", " + thelist[i].name;
+      endif
+    endfor
+    return txt;
+  endmethod
+
+  method can_write
+    var what_var, perm, temp, called_by;
+    ignore E_TYPE, E_RANGE, E_METHODNF, E_PERM;
+    what_var = args[1];
+    called_by = args[2];
+    if (caller == #0 || player == #0)
+      return 1;
+    endif
+    if (called_by == this)
+      return 1;
+    endif
+    if (player == this)
+      return 1;
+    endif
+    if (player in #0.wizards)
+      return 1;
+    endif
+    if (player in owners)
+      return 1;
+    endif
+    if (what_var in write_ok)
+      return 1;
+    endif
+    if (called_by == getvar("location") && safe == 0)
+      return 1;
+    endif
+    return 0;
+  endmethod
+
+  method set_sublocation
+    if (this.can_write("sublocation", caller))
+      sublocation = args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method implode
+    var i, thelist, txt;
+    txt = "";
+    thelist = args[1];
+    txt = thelist[1];
+    for i in [2..lengthof(thelist)]
+      txt = txt + args[2] + thelist[i];
+    endfor
+    return txt;
+  endmethod
+
+  method padc
+    var retstr, i, padchar;
+    ignore E_RANGE;
+    if (args[3])
+      padchar = args[3][1];
+    else
+      padchar = " ";
+    endif
+    if (lengthof(args[1]) >= tonum(args[2]))
+      return pad(@args);
+    endif
+    i = (tonum(args[2]) - lengthof(args[1])) / 2;
+    player.tell("i: " + tostr(i));
+    retstr = pad(padchar, i, padchar) + args[1] + pad(padchar, i, padchar);
+    retstr = pad(retstr, tonum(args[2]), padchar);
+    return retstr;
+  endmethod
+
+  method set_name
+    if (this.can_write("name", caller))
+      name = args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method compile
+    if (!this.can_write("", caller))
+      raise E_PERM;
+    endif
+    return !compile(this, args[1], args[2]);
+  endmethod
+
+  method isa
+    return hasparent(args[1]);
+  endmethod
+
+  method iname
+    if (proper_name)
+      return name;
+    elseif (!name)
+      return "an unnamed thing, how gauche";
+    elseif (name[1] in "aeiou")
+      return "an " + name;
+    else
+      return "a " + name;
+    endif
+  endmethod
+
+  method rm_parent
+    if (!this.can_write("parents", caller))
+      raise E_PERM;
+    else
+      chparents(parents - args[1]);
+    endif
+  endmethod
+
+  method verbs
+    if (this.can_read("", caller))
+      return verbs();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method can_read
+    var what, what_var, perm, temp, called_by;
+    ignore E_TYPE, E_RANGE, E_METHODNF, E_PERM;
+    what_var = args[1];
+    called_by = args[2];
+    if (this.can_write(what_var, called_by))
+      return 1;
+    endif
+    if (called_by == #0)
+      return 1;
+    endif
+    if (what_var in light_vars)
+      return 1;
+    endif
+    if (public && !(what_var in dark_vars))
+      return 1;
+    endif
+    return 0;
+  endmethod
+
+endobject
+object #0
+  parents #1;
+
+  obj  room = #6;
+  obj  located_obj = #2;
+  obj  builder = #9;
+  obj  thing = #4;
+  str  welcome_msg = " \n*** WELCOME TO CHAOS! ***\n \nCOOLMUD created by Stephen White.  Damn fine program, too.\nChaos is run by Robin Powell.\nUse \"create <name> <password>\" to create a new character.\nUse \"connect <name> <password>\" to connect to an existing character.\nUse \"who\" or \"@who\" to get a list of users currently connected.\nUse \"quit\" or \"@quit\" to disconnect without connecting.\nUse help to repeat this message.\n-----------------------\nI'm working on a general help for playing on the MUD, look at 'help playing'.  Also, 'help commands' is now usefully organized, and we have furniture.\nNOTE FOR WINDOWS USERS:  I've fixed the server to deal with backspace from windows telnet properly.  If it still doesn't work, use CTRL-H.\nYou can now have aliases for exits and players.  See 'help @aliases'.\n-----------------------\n\n";
+  list connected_servers = {#0};
+  obj  player_start = #13;
+  obj  help_obj = #14;
+  obj  root = #1;
+  obj  container = #5;
+  obj  player = #8;
+  str  name = "The System Object";
+  list players = {#11};
+  obj  network_tools = #12;
+  list connected_players = {#11};
+  list visitors = {};
+  obj  global_help_obj = #15;
+  obj  news_obj = #16;
+  list owners = {#11};
+  num  public = 1;
+  obj  wizard = #11;
+  num  booted_at = 898288986;
+  obj  puppet = #19;
+  obj  exit = #7;
+  num  dbtop;
+  obj  programmer = #10;
+  obj  furniture = #18;
+  obj  global_news_obj = #17;
+  list wizards = {#11};
+  obj  described_obj = #3;
+
+
+  method find_connected_player
+    var dude;
+    for dude in (connected_players)
+      if (dude.match_full(args[1]))
+        return dude;
+      endif
+    endfor
+    for dude in (connected_players)
+      if (dude.match(args[1]))
+        return dude;
+      endif
+    endfor
+    return #-1;
+  endmethod
+
+  method rm_wizard
+    if (!(caller in wizards))
+      player.tell("Permission denied.");
+    else
+      wizards = wizards - args[1];
+      player.tell("Wizard removed.");
+    endif
+  endmethod
+
+  method connected_servers
+    return connected_servers;
+  endmethod
+
+  method sync
+    if (!(caller in #0.wizards))
+      raise E_PERM;
+    endif
+    at (0)
+      while (1)
+        sleep(300);
+      endwhile
+    endat
+  endmethod
+
+  method who
+    var dude, line, howmany;
+    if (args)
+      echo("Player Name       On For      Idle", args[1]);
+    else
+      player.tell("Player Name       On For      Idle");
+    endif
+    for dude in (connected_players)
+      line = pad(dude.name, 17) + " " + pad(this.convtime(time() - dude.connected_at), 11) + " " + pad(this.convtime(time() - dude.last_cmd_at), 11);
+      if (args)
+        echo(line, args[1]);
+      else
+        player.tell(line);
+      endif
+    endfor
+    howmany = lengthof(connected_players);
+    if (howmany == 1)
+      player.tell("1 player connected.  Lonely.");
+    else
+      player.tell(tostr(howmany) + " players connected.");
+    endif
+  endmethod
+
+  method players
+    return players;
+  endmethod
+
+  method disconnect_server
+    connected_servers = connected_servers - args[1];
+  endmethod
+
+  method visitors
+    return visitors;
+  endmethod
+
+  method connected_players
+    return connected_players;
+  endmethod
+
+  method init
+    if (caller != #0)
+      raise E_PERM;
+    else
+      this.add_owner(#11);
+    endif
+  endmethod
+
+  method connect_player
+    var who, password;
+    ignore E_METHODNF;
+    if (caller != #0)
+      raise E_PERM;
+    elseif (lengthof(args[1]) < 2 || lengthof(args[1]) > 3)
+      echo("Usage:  connect <username> <password>", args[2]);
+    else
+      who = #0.find_player(args[1][2]);
+      if (!who)
+        echo("Login incorrect.", args[2]);
+        writelog("Player \"" + args[1][2] + "\" failed connect on descriptor " + tostr(args[2]));
+      else
+        password = who.getvar("password");
+        if (password && crypt(args[1][3], password[1..2]) != password)
+          echo("Login incorrect.", args[2]);
+          writelog("Player \"" + args[1][2] + "\" failed connect on descriptor " + tostr(args[2]));
+        else
+          player = who;
+          if (who in connected_players)
+            who.tell("*** Punting for new connection ***");
+            who.quit_cmd;
+            set_parse(args[2], who);
+            who.tell("*** Punting old connection ***");
+          else
+            set_parse(args[2], who);
+          endif
+          connected_players = connected_players + who;
+          writelog("Player \"" + who.id + "\" connected on descriptor " + tostr(args[2]));
+          who.connect;
+        endif
+      endif
+    endif
+  endmethod
+
+  method resynch
+    var item, dummy;
+    if (caller != #0)
+      raise E_PERM;
+    endif
+    for item in (visitors)
+      if (serverof(item[1].location))
+        dummy = item[2].remove(item[1]);
+        visitors = visitors - item;
+      endif
+    endfor
+  endmethod
+
+  method convtime
+    var r, time, howmany;
+    if (lengthof(args) != 1)
+      raise E_RANGE;
+    elseif (typeof(args[1]) != 1)
+      raise E_TYPE;
+    else
+      time = args[1];
+      if (time > 24 * 60 * 60)
+        r = " day";
+        howmany = time / (24 * 60 * 60);
+      elseif (time > 60 * 60)
+        r = " hour";
+        howmany = time / (60 * 60);
+      elseif (time > 60)
+        r = " minute";
+        howmany = time / 60;
+      else
+        r = " second";
+        howmany = time;
+      endif
+      if (howmany != 1)
+        r = r + "s";
+      endif
+      return tostr(howmany) + r;
+    endif
+  endmethod
+
+  method connect
+    var who;
+    who = args[1];
+    echo(welcome_msg);
+  endmethod
+
+  method add_visitor
+    visitors = visitors + {};
+  endmethod
+
+  method add_wizard
+    if (!(caller in wizards))
+      player.tell("Permission denied.");
+    else
+      wizards = wizards + args[1];
+      player.tell("Wizard added.");
+    endif
+  endmethod
+
+  method find_player
+    var dude;
+    for dude in (players)
+      if (dude.match_full(args[1]))
+        return dude;
+      endif
+    endfor
+    for dude in (players)
+      if (dude.match(args[1]))
+        return dude;
+      endif
+    endfor
+    return #-1;
+  endmethod
+
+  method connect_server
+    connected_servers = connected_servers + args[1];
+    #0.resynch;
+  endmethod
+
+  method boot_server
+    if (caller != #0)
+      raise E_PERM;
+    endif
+    connected_players = {#11};
+    connected_servers = {#0};
+    booted_at = time();
+  endmethod
+
+  method parse
+    var who, c;
+    ignore E_RANGE;
+    who = args[2];
+    if (!args[1] || args[1] == "help")
+      echo(welcome_msg);
+    else
+      c = explode(args[1]);
+      if (c[1][1..2] == "co" && c[1] == "connect"[1..lengthof(c[1])])
+        this.connect_player(c, who);
+      elseif (c[1][1..2] == "cr" && c[1] == "create"[1..lengthof(c[1])])
+        this.create_player(c, who);
+      elseif (c[1] == "who" || c[1] == "@who")
+        #0.who(who);
+      elseif (c[1] == "quit" || c[1] == "@quit")
+        disconnect(args[2]);
+      else
+        echo("Invalid command.  Valid commands are:  connect, create, help, who, and quit.", who);
+      endif
+    endif
+  endmethod
+
+  method add_player
+    if (player in wizards || player == #0)
+      players = setadd(players, args[1]);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method sanity_check
+    var item, n, c, creation, _exit, owner;
+    ignore E_OBJNF;
+    for n in [args[1]..args[2]]
+      item = toobj(n);
+      if (item.id != E_OBJNF)
+        if (item.isa($located_obj))
+          if (item.location != #-1 && item.location.id == E_OBJNF)
+            player.tell(item.id + ":  thinks it's in " + tostr(item.location) + ", which was destroyed.");
+          endif
+          for c in (item.contents)
+            if (c.id == E_OBJNF)
+              player.tell(item.id + ":  contents " + tostr(c) + " doesn't exist!");
+            elseif (!c.isa($located_obj))
+              player.tell(item.id + ":  contains non-located thing " + tostr(c));
+            elseif (c.location != item)
+              player.tell(item.id + ":  contents " + c.id + " thinks it's in " + c.location.id);
+            endif
+          endfor
+        endif
+        if (item.isa($player))
+          for creation in (item.creations)
+            if (creation.id == E_OBJNF)
+              player.tell(item.id + ":  creation " + tostr(creation) + " doesn't exist!");
+            elseif (!(item in creation.owners))
+              player.tell(item.id + ":  creation " + creation.id + " doesn't consider itself owned by " + item.id);
+            endif
+          endfor
+        endif
+        if (item.isa($room))
+          for _exit in (item.exits)
+            if (_exit.id == E_OBJNF)
+              player.tell(item.id + ":  exit " + tostr(_exit) + " doesn't exist!");
+            elseif (_exit.source != item)
+              player.tell(item.id + ":  exit " + _exit.id + " thinks its source is " + tostr(_exit.source));
+            endif
+          endfor
+        endif
+        if (item.isa($exit))
+          if (item.source.id != #-1 && item.source.id == E_OBJNF)
+            player.tell(item.id + " source is destroyed?!");
+          elseif (item.dest.id != #-1 && item.dest.id == E_OBJNF)
+            player.tell(item.id + " dest is destroyed?!");
+          endif
+        endif
+        for owner in (item.owners)
+          if (owner.id == E_OBJNF)
+            player.tell(item.id + ":  owner " + owner.id + " doesn't exist!");
+          elseif (!owner.isa($player))
+            player.tell(item.id + ":  owner " + owner.id + " is not a player.");
+          elseif (!(item in owner.creations))
+            player.tell(item.id + ":  thinks it's owned by " + owner.id + ", who doesn't think so");
+          endif
+        endfor
+      endif
+    endfor
+  endmethod
+
+  method sanity_fix
+    var item, n, c, creation, _exit, owner;
+    ignore E_OBJNF;
+    for n in [args[1]..args[2]]
+      item = toobj(n);
+      if (item.id != E_OBJNF)
+        if (item.isa($located_obj))
+          if (item.location != #-1 && item.location.id == E_OBJNF)
+            player.tell(item.id + ":  thinks it's in " + tostr(item.location) + ", which was destroyed.");
+            item.moveto(#-1);
+            player.tell("sent it to #-1");
+          endif
+          for c in (item.contents)
+            if (c.id == E_OBJNF)
+              player.tell(item.id + ":  contents " + tostr(c) + " doesn't exist!");
+              item.remove(c);
+              player.tell("removed");
+            elseif (!c.isa($located_obj))
+              player.tell(item.id + ":  contains non-located thing " + tostr(c));
+              item.remove(c);
+              player.tell("removed");
+            elseif (c.location != item)
+              player.tell(item.id + ":  contents " + c.id + " thinks it's in " + c.location.id);
+              item.remove(c);
+              player.tell("removed");
+            endif
+          endfor
+        endif
+        if (item.isa($player))
+          for creation in (item.creations)
+            if (creation.id == E_OBJNF)
+              player.tell(item.id + ":  creation " + tostr(creation) + " doesn't exist!");
+              item.rm_creation(creation);
+              player.tell("removed");
+            elseif (!(item in creation.owners))
+              player.tell(item.id + ":  creation " + creation.id + " doesn't consider itself owned by " + item.id);
+              creation.add_owner(item);
+              player.tell("added");
+            endif
+          endfor
+        endif
+        if (item.isa($room))
+          for _exit in (item.exits)
+            if (_exit.id == E_OBJNF)
+              player.tell(item.id + ":  exit " + tostr(_exit) + " doesn't exist!");
+              item.rm_exit(_exit);
+              player.tell("removed");
+            elseif (_exit.source != item)
+              player.tell(item.id + ":  exit " + _exit.id + " thinks its source is " + tostr(_exit.source));
+              item.rm_exit(_exit);
+              player.tell("removed");
+            endif
+          endfor
+        endif
+        if (item.isa($exit))
+          if (item.source.id != #-1 && item.source.id == E_OBJNF)
+            player.tell(item.id + " source is destroyed?!");
+            item.set_dest(#-1);
+            player.tell("set to #-1");
+          elseif (item.dest.id != #-1 && item.dest.id == E_OBJNF)
+            player.tell(item.id + " dest is destroyed?!");
+            item.set_dest(#-1);
+            player.tell("set to #-1");
+          endif
+        endif
+        for owner in (item.owners)
+          if (owner.id == E_OBJNF)
+            player.tell(item.id + ":  owner " + owner.id + " doesn't exist!");
+            item.rm_owner(owner);
+            player.tell("removed");
+          elseif (!owner.isa($player))
+            player.tell(item.id + ":  owner " + owner.id + " is not a player.");
+            item.rm_owner(owner);
+            player.tell("removed");
+          elseif (!(item in owner.creations))
+            player.tell(item.id + ":  thinks it's owned by " + owner.id + ", who doesn't think so");
+            owner.add_creation(item);
+            player.tell("added");
+          endif
+        endfor
+      endif
+    endfor
+  endmethod
+
+  method booted_at
+    return booted_at;
+  endmethod
+
+  method rm_visitor
+    visitors = visitors + {};
+  endmethod
+
+  method foo
+    var what;
+    for what in [0..tonum(dbtop)]
+      player.tell(toobj(what).id);
+    endfor
+  endmethod
+
+  method dbtop
+    return dbtop;
+  endmethod
+
+  method create_player
+    var who;
+    ignore E_METHODNF;
+    if (caller != #0)
+      raise E_PERM;
+    elseif (lengthof(args[1]) != 3)
+      echo("Usage:  create <username> <password>", args[2]);
+    else
+      who = #0.find_player(args[1][2]);
+      if (who)
+        echo("That name is illegal, or already in use.  Please choose another.", args[2]);
+        writelog("Player \"" + args[1][2] + "\" failed create on descriptor " + tostr(args[2]));
+      else
+        who.init;
+        who.setvar("password", crypt(args[1][3]));
+        set_parse(args[2], who);
+        player = who;
+        connected_players = connected_players + who;
+        players = players + who;
+        writelog("Player \"" + who.id + "\" created on descriptor " + tostr(args[2]));
+        who.connect;
+      endif
+    endif
+  endmethod
+
+  method rm_connected_player
+    connected_players = connected_players - caller;
+  endmethod
+
+  method wizards
+    return wizards;
+  endmethod
+
+  method rm_player
+    if (caller in wizards || caller == args[1])
+      players = players - args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method dump
+    var what, item;
+    ignore E_OBJNF;
+    for item in [0..tonum(dbtop)]
+      what = toobj(item);
+      if (what.id)
+        player.tell(what.decompile);
+      endif
+    endfor
+  endmethod
+
+endobject
+object #2
+  parents #1;
+
+  list contents = {};
+  str  name = "Generic Located Object";
+  list owners = {#11};
+  num  public = 1;
+  obj  location = #-1;
+
+
+  method destroy
+    var thing, thome;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (this.can_write("", caller))
+      if (location)
+        location.remove(this);
+      endif
+      for thing in (contents)
+        thome = thing.home;
+        if (thome)
+          thing.moveto(thome);
+        else
+          thing.moveto(#-1);
+        endif
+      endfor
+      pass();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method moveto
+    var dest, old_location;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    dest = args[1];
+    if (dest == location)
+      return 1;
+    elseif (dest == this)
+      return 0;
+    elseif (dest.contained_by(this))
+      return 0;
+    endif
+    lock("moveto");
+    if (dest && !dest.accept(this))
+      return 0;
+    endif
+    old_location = location;
+    location = dest;
+    if (old_location)
+      old_location.remove(this);
+    endif
+    return 1;
+  endmethod
+
+  method contents
+    return contents;
+  endmethod
+
+  method init
+    if (this == $located_obj)
+      this.add_owner(#11);
+    else
+      location = #-1;
+      contents = {};
+      pass();
+    endif
+  endmethod
+
+  method accept
+    var what, item;
+    what = args[1];
+    contents = contents + what;
+    if (serverof(what))
+      #0.add_visitor(what, this);
+    endif
+    for item in (contents)
+      item.event_entry(what);
+    endfor
+    return 1;
+  endmethod
+
+  method contained_by
+    if (location == args[1])
+      return 1;
+    elseif (!location)
+      return 0;
+    else
+      return location.contained_by(args[1]);
+    endif
+  endmethod
+
+  blocked method location
+    return location;
+  endmethod
+
+  method remove
+    var what, item;
+    what = args[1];
+    contents = contents - what;
+    if (serverof(what))
+      #0.rm_visitor(what, this);
+    endif
+    for item in (contents)
+      item.event_exit(what);
+    endfor
+  endmethod
+
+  method match_contents
+    var thing;
+    for thing in (contents)
+      if (thing.match(args[1]))
+        return thing;
+      endif
+    endfor
+    return #-1;
+  endmethod
+
+  blocked method set_contents
+    raise E_PERM;
+  endmethod
+
+endobject
+object #3
+  parents #1;
+
+  obj  help_obj = #-1;
+  str  name = "Generic Described Object";
+  list owners = {#11};
+  str  desc = "";
+  num  public = 1;
+
+  verb "l*ook ex*amine" = look_verb;
+  verb "@desc*ribe" : "as" = desc_verb;
+
+  method desc_verb
+    if (!this.match(args[2]))
+      return 1;
+    elseif (!this.can_write("desc", caller))
+      player.tell("Permission denied.");
+    else
+      desc = args[4];
+      player.tell("Description set.");
+    endif
+  endmethod
+
+  method init
+    if (this == $described_obj)
+      this.add_owner(#11);
+    else
+      pass();
+    endif
+  endmethod
+
+  method desc
+    return desc;
+  endmethod
+
+  method look_verb
+    if (!this.match(args[2]))
+      return 1;
+    endif
+    this.look;
+  endmethod
+
+  method help
+    ignore E_OBJNF;
+    return help_obj.help(args[1]);
+  endmethod
+
+  method match_full
+    var word, alias;
+    if (!args[1])
+      return 0;
+    elseif (args[1][1] == "#" && toobj(args[1]) == this)
+      return 1;
+    endif
+    if (aliases)
+      for alias in (explode(aliases, "\n"))
+        if (match_full(alias, args[1]))
+          return 1;
+        endif
+      endfor
+    endif
+    return match_full(name, args[1]);
+  endmethod
+
+  method look
+    if (this.desc)
+      player.tell(this.desc);
+    else
+      player.tell("You see nothing special.");
+    endif
+  endmethod
+
+  method match
+    var word, alias;
+    if (!args[1])
+      return 0;
+    elseif (args[1][1] == "#" && toobj(args[1]) == this)
+      return 1;
+    endif
+    if (aliases)
+      for alias in (explode(aliases, "\n"))
+        if (lengthof(explode(alias)) > 1)
+          if (match(alias, args[1]))
+            return 1;
+          endif
+        else
+          if (match_full(alias, args[1]))
+            return 1;
+          endif
+        endif
+      endfor
+    endif
+    return match(name, args[1]);
+  endmethod
+
+endobject
+object #4
+  parents #2, #3;
+
+  str  name = "Generic Thing";
+  list owners = {#11};
+  num  public = 1;
+  obj  home = #-1;
+
+  verb "get take" = get;
+  verb "drop throw" = drop;
+
+  method drop
+    var result;
+    if (args[1] != "all" && !this.match(args[2]))
+      return 1;
+    elseif (location != player)
+      result = "You don't have that!";
+    elseif (this.moveto(player.location))
+      result = "Dropped.";
+      player.location.announce(player.name + " drops " + this.dname + ".", {player});
+    else
+      result = "You can't drop that.";
+    endif
+    if (args[1] == "all")
+      player.tell(name + ":  " + result);
+    else
+      player.tell(result);
+    endif
+  endmethod
+
+  method id
+    return pass() to #3;
+  endmethod
+
+  method init
+    ignore E_METHODNF;
+    if (this == $thing)
+      this.add_owner(#11);
+    else
+      if (player.home)
+        home = player.home;
+      else
+        home = player;
+      endif
+      pass();
+      this.moveto(player);
+    endif
+  endmethod
+
+  method get
+    var result;
+    if (args[1] != "all" && !this.match(args[2]))
+      return 1;
+    elseif (location == player)
+      result = "You already have that!";
+    elseif (location != player.location)
+      result = "I don't see that here.";
+    elseif (this.moveto(player))
+      result = "Taken.";
+      player.location.announce(player.name + " takes " + this.dname + ".", {player});
+    else
+      result = "You can't get that.";
+    endif
+    if (args[1] == "all")
+      player.tell(name + ":  " + result);
+    else
+      player.tell(result);
+    endif
+  endmethod
+
+  method accept
+    return 0;
+  endmethod
+
+  method location
+    return #-1;
+  endmethod
+
+endobject
+object #5
+  parents #4;
+
+  num  transparent = 0;
+  list contents = {};
+  str  name = "Generic Container";
+  list owners = {#11};
+  num  public = 1;
+  num  open = 1;
+  obj  location = #-1;
+  num  openable = 1;
+  obj  home = #0;
+
+  verb "put place insert" : "in into" = put_in;
+  verb "l*ook" : "in into inside" = look_in;
+  verb "get remove take" : "from in out_of" = remove_from;
+
+  method remove_from
+    var what;
+    if (!this.match(args[4]))
+      return 1;
+    elseif (!open)
+      player.tell(this.dnamec + " is closed.");
+      return 0;
+    endif
+    what = this.match_contents(args[2]);
+    if (!what)
+      player.tell("That object is not inside " + this.dname + ".");
+    elseif (what.moveto(player))
+      player.tell("You remove " + what.iname + " from " + this.dname + ".");
+    else
+      player.tell("You can't remove that.");
+    endif
+  endmethod
+
+  method init
+    if (this == $container)
+      this.add_owner(#11);
+    endif
+    pass();
+  endmethod
+
+  method close
+    if (!this.match(args[2]))
+      return 1;
+    elseif (!openable)
+      player.tell("You can't close that!");
+    elseif (!open)
+      player.tell("It's already closed!");
+    else
+      open = 0;
+      player.tell("You close " + this.dname + ".");
+      location.announce(player.name + " closes " + this.dname + ".", {player});
+    endif
+  endmethod
+
+  method accept
+    return pass(args[1]) to #2;
+  endmethod
+
+  method put_in
+    var what;
+    if (!this.match(args[4]))
+      return 1;
+    endif
+    what = player.match_contents(args[2]);
+    if (!what)
+      player.tell("You don't have that.");
+    elseif (what.moveto(this))
+      player.tell("You put " + what.dname + " into " + this.dname + ".");
+    else
+      player.tell("You can't put " + what.dname + " into " + this.dname + ".");
+    endif
+  endmethod
+
+  method open
+    if (!this.match(args[2]))
+      return 1;
+    elseif (!openable)
+      player.tell("You can't open that!");
+    elseif (open)
+      player.tell("It's already open!");
+    else
+      open = 1;
+      player.tell("You open " + this.dname + ".");
+      location.announce(player.name + " opens " + this.dname + ".", {player});
+    endif
+  endmethod
+
+  method look_in
+    var thing;
+    if (!this.match(args[4]))
+      return 1;
+    endif
+    if (open || transparent)
+      if (contents)
+        player.tell("Inside " + this.dname + " you see:");
+        for thing in (contents)
+          player.tell("  " + thing.name);
+        endfor
+      else
+        player.tell("You see nothing inside " + this.dname + ".");
+      endif
+    else
+      player.tell("You can't look inside " + this.dname + ", it's closed.");
+    endif
+  endmethod
+
+  method look
+    var thing;
+    pass() to #3;
+    if (openable)
+      if (open)
+        player.tell("It is open.");
+      else
+        player.tell("It is closed.");
+      endif
+    endif
+    if (this.contents && (open || transparent))
+      player.tell("Containing:");
+      for thing in (this.contents)
+        player.tell("  " + thing.iname);
+      endfor
+    endif
+  endmethod
+
+endobject
+object #6
+  parents #2, #3;
+
+  str  disconnect_oarrive = "%n appears from nowhere.";
+  str  disconnect_leave = "You vanish into darkness.";
+  str  disconnect_oleave = "%n falls unconcious and vanishes.";
+  list contents = {#12, #16};
+  obj  help_obj = #15;
+  str  disconnect_arrive = "";
+  str  name = "Generic Room";
+  num  open_ok = 0;
+  num  link_ok = 0;
+  obj  news_obj = #17;
+  list owners = {#11};
+  num  public = 1;
+  list exits = {};
+  obj  disconnect_to = #-1;
+  list invisible_contents = {};
+
+  verb "go move" = go_verb;
+
+  method disconnect_oarrive
+    return disconnect_oarrive;
+  endmethod
+
+  method destroy
+    var exit, thing;
+    ignore E_SERVERDN, E_OBJNF;
+    if (!(caller == this || caller in owners || caller in parents || caller == #0 || caller in #0.wizards || !owners))
+      raise E_PERM;
+    else
+      for exit in (exits)
+        exit.destroy;
+      endfor
+      pass();
+    endif
+  endmethod
+
+  method disconnect_leave
+    return disconnect_leave;
+  endmethod
+
+  method id
+    return pass() to #3;
+  endmethod
+
+  method announce
+    var dude;
+    ignore E_METHODNF, E_SERVERDN;
+    for dude in (contents)
+      if (lengthof(args) == 1 || !(dude in args[2]))
+        dude.tell(args[1]);
+      endif
+    endfor
+  endmethod
+
+  method disconnect_oleave
+    return disconnect_oleave;
+  endmethod
+
+  method disconnect_arrive
+    return disconnect_arrive;
+  endmethod
+
+  method go_verb
+    if (!args[2])
+      player.tell("Go where?");
+    elseif (this.go(args[2]))
+      player.tell("There is no passage in that direction.");
+    endif
+  endmethod
+
+  method open_ok
+    if (this.can_read("open_ok", caller))
+      return open_ok;
+    else
+      return 0;
+    endif
+  endmethod
+
+  method init
+    if (this == $room)
+      this.add_owner(#11);
+    elseif (this.can_write("", caller))
+      exits = {};
+      pass();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method link_ok
+    if (this.can_read("link_ok", caller))
+      return link_ok;
+    else
+      return 0;
+    endif
+  endmethod
+
+  method set_exits
+    raise E_PERM;
+  endmethod
+
+  method go
+    var exit;
+    for exit in (exits)
+      if (exit.match_full(args[1]) && exit.dest)
+        exit.activate;
+        return 0;
+      endif
+    endfor
+    for exit in (exits)
+      if (exit.match(args[1]) && exit.dest)
+        exit.activate;
+        return 0;
+      endif
+    endfor
+    return -1;
+  endmethod
+
+  method help
+    var item, text;
+    ignore E_METHODNF;
+    text = help_obj.help(args[1]);
+    if (text)
+      return text;
+    else
+      for item in (contents)
+        text = item.help(args[1]);
+        if (text)
+          return text;
+        endif
+      endfor
+    endif
+  endmethod
+
+  method match_contents
+    var exit;
+    for exit in (exits)
+      if (exit.match(args[1]))
+        return exit;
+      endif
+    endfor
+    return pass(@args);
+  endmethod
+
+  method exits
+    return exits;
+  endmethod
+
+  method rm_exit
+    if (this.can_write("exits", caller))
+      exits = exits - args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method add_exit
+    if (this.can_write("exits", caller))
+      exits = exits + args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method news
+    var item, text;
+    ignore E_METHODNF;
+    return news_obj.news(args[1]);
+  endmethod
+
+  method disconnect_to
+    return disconnect_to;
+  endmethod
+
+  method look
+    var thing, nm;
+    ignore E_SERVERDN, E_OBJNF;
+    if (player.sublocation != #-1)
+      player.tell(this.name + " [" + player.sublocation.subname + "]");
+    else
+      player.tell(this.name);
+    endif
+    if (this.desc)
+      player.tell(this.desc);
+    endif
+    if (contents && !dark)
+      for thing in (contents)
+        if (thing != player && !thing.dark && !thing.sublocation)
+          nm = thing.sdesc;
+          if (nm == E_SERVERDN || nm == E_OBJNF)
+            player.tell("(Ghost of " + tostr(thing) + " is here.)");
+          else
+            player.tell(nm);
+          endif
+        endif
+      endfor
+    endif
+    if (exits && !dark)
+      player.tell("Exits:");
+      for thing in (exits)
+        if (thing.name)
+          player.tell(thing.name);
+        endif
+      endfor
+    endif
+  endmethod
+
+  method match_exit
+    var exit;
+    for exit in (exits)
+      if (exit.match(args[1]))
+        return exit;
+      endif
+    endfor
+    return #-1;
+  endmethod
+
+  method match
+    return args[1] == "here" && player.location == this;
+  endmethod
+
+endobject
+object #7
+  parents #3;
+
+  obj  source = #-1;
+  str  leave = "";
+  str  oleave = "%n leaves through exit %exit.";
+  str  name = "Generic Exit";
+  list owners = {#11};
+  num  public = 1;
+  str  arrive = "";
+  str  oarrive = "%n arrives through exit %exit.";
+  obj  dest = #-1;
+
+
+  method find_mate
+    var what;
+    for what in (dest.exits)
+      if (what.dest == source)
+        return what;
+      endif
+    endfor
+    return #-1;
+  endmethod
+
+  method source
+    return source;
+  endmethod
+
+  method destroy
+    ignore E_OBJNF;
+    if (this.can_write("", caller))
+      if (source && source.id != E_OBJNF)
+        source.rm_exit(this);
+      endif
+      pass();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method name
+    if (dark < 1)
+      return name;
+    endif
+  endmethod
+
+  method init
+    if (this == #7)
+      this.add_owner(#11);
+    elseif (this.can_write("", caller))
+      source = #-1;
+      dest = #-1;
+      pass();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method set_source
+    if (this.can_write("source", caller))
+      source = args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method activate
+    var pname;
+    ignore E_SERVERDN;
+    pname = player.name;
+    if (dest.name == E_SERVERDN)
+      player.tell("You can't go that way right now.");
+      return 0;
+    elseif (!player.moveto(dest, leave, oleave, arrive, oarrive))
+      player.tell("You can't go that way.");
+      return 0;
+    endif
+  endmethod
+
+  method set_dest
+    if (this.can_write("dest", caller))
+      dest = args[1];
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method dest
+    return dest;
+  endmethod
+
+endobject
+object #8
+  parents #2, #3;
+
+  str  editing_type = "";
+  str  editing_method = "";
+  num  last_cmd_at = 0;
+  num  proper_name = 1;
+  str  editing_var = "";
+  str  name = "Generic Player";
+  str  gender = "";
+  str  read_input = "";
+  obj  editing_obj = #-1;
+  str  password = "";
+  list owners = {#11};
+  str  done_reading = "";
+  num  public = 1;
+  num  connected_at = 0;
+  num  reading = 0;
+  obj  home = #-1;
+  list editing_list = {};
+  list creations = {};
+
+  verb "dr*op th*row" = drop_cmd;
+  verb "get ta*ke" = get_cmd;
+  verb "help" = help_cmd;
+  verb "home" = gohome_cmd;
+  verb "i inv*entory" = inventory_cmd;
+  verb "l*ook" = look_cmd;
+  verb "news" = news_cmd;
+  verb "@password password" : "to" = password_cmd;
+  verb "@password password" = password_cmd;
+  verb "po*se" = pose_cmd;
+  verb "quit @quit" = quit_cmd;
+  verb "rwho" = rwho_cmd;
+  verb "sa*y" = say_cmd;
+  verb "who @who" = who_cmd;
+  verb "wh*isper" : "to" = whisper_cmd;
+  verb "wiz*ards" = wizards_cmd;
+  verb "edit_var" : "on" = edit_var_cmd;
+  verb "clear_edit" = clear_edit;
+  verb "list" = list_edit;
+  verb "insert" : "at" = insert;
+  verb "delete" = delete;
+  verb "save" = save;
+  verb "replace" : "with" = replace;
+  verb "rename" = rename;
+  verb "append" = append;
+  verb "@home" = home_cmd;
+  verb "@gender" = gender_cmd;
+  verb "exits" = exits_cmd;
+  verb "uptime" = uptime_cmd;
+  verb "blank" = blank;
+  verb "give" : "to" = give_verb;
+  verb "p*age" : "with" = page_cmd;
+  verb "p*age" = page_cmd;
+  verb "@aliases" : "to" = aliases_cmd;
+  verb "@cpvar" : "to" = cpvar_cmd;
+
+  method edit_var_cmd
+    var what, tl, i;
+    ignore E_TYPE, E_VARNF, E_MAPNF;
+    what = this.match_env(args[4]);
+    if (!what)
+      player.tell("I don't see that here.");
+    else
+      if (what.can_write("", caller))
+        editing_obj = what;
+        editing_type = "v";
+        editing_method = "";
+        editing_var = args[2];
+        tl = explode(editing_var);
+        if (lengthof(tl) > 1)
+          for i in [3..lengthof(tl)]
+            tl[2] = tl[2] + " " + tl[i];
+          endfor
+          if (lengthof(what.getvar(tl[1])) < 1)
+            what.compile("edit_temp_method", "setvar(\"" + tl[1] + "\",[\"" + tl[2] + "\" => \"\" ]);");
+            what.edit_temp_method;
+            what.rm_method("edit_temp_method");
+          endif
+          tl = what.getvar(tl[1])[tl[2]];
+        else
+          tl = what.getvar(editing_var);
+        endif
+        if (typeof(tl) != 0)
+          tl = tostr(tl);
+        endif
+        editing_list = explode(tl, "\n");
+      else
+        raise E_PERM;
+      endif
+      player.tell("Now editing variable " + args[2] + " on object " + tostr(what));
+    endif
+  endmethod
+
+  method drop_cmd
+    var thing;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (args[2] == "all" || args[2] == "everything")
+      if (!contents)
+        echo("You are empty-handed.");
+      else
+        for thing in (contents)
+          if (thing.drop("all") == E_METHODNF)
+            echo(thing.name + ":  You can't drop that.");
+          endif
+        endfor
+      endif
+    else
+      return 1;
+    endif
+  endmethod
+
+  method inventory_cmd
+    var item;
+    if (contents)
+      echo("You are carrying:");
+      this.inv;
+    else
+      echo("You are empty-handed.");
+    endif
+  endmethod
+
+  method destroy
+    var thing, tid;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (this.can_write("", caller))
+      for thing in (creations)
+        tid = thing.id;
+        if (tid == E_OBJNF || tid == E_SERVERDN)
+          continue;
+        endif
+        if (thing != this)
+          thing.rm_owner(this);
+          if (!thing.owners)
+            thing.destroy;
+          endif
+        endif
+      endfor
+      #0.rm_player(this);
+      pass();
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method id
+    return pass() to #3;
+  endmethod
+
+  method announce
+    if (lengthof(args) == 1 || !(this in args[2]))
+      this.tell("From inside you, " + args[1]);
+    endif
+  endmethod
+
+  method telln
+    var tempstr;
+    if (typeof(args[1]) == 0)
+      tempstr = args[1];
+    else
+      tempstr = tostr(args[1]);
+    endif
+    echon(tempstr);
+  endmethod
+
+  method moveto
+    var oldloc;
+    ignore E_RANGE, E_METHODNF;
+    oldloc = location;
+    if (pass(args[1]))
+      if (args[2])
+        echo(args[2]);
+      endif
+      if (oldloc)
+        if (args[3])
+          oldloc.announce(this.psub(args[3], ["exit" => caller.name]), {this, location});
+        endif
+      endif
+      this.look_around;
+      if (args[4])
+        echo(args[4]);
+      endif
+      if (location)
+        if (args[5])
+          if (caller.find_mate)
+            location.announce(this.psub(args[5], ["exit" => caller.find_mate.name]), {this, oldloc});
+          endif
+        endif
+      endif
+      return 1;
+    else
+      return 0;
+    endif
+  endmethod
+
+  method last_cmd_at
+    return last_cmd_at;
+  endmethod
+
+  method gender_cmd
+    if (caller != this)
+      return 1;
+    else
+      gender = args[2];
+      player.tell("Gender set.");
+    endif
+  endmethod
+
+  method input_to
+    if (caller != this && !(caller in #0.wizards))
+      raise E_PERM;
+    endif
+    reading = 1;
+    read_input = "";
+    done_reading = args[1];
+  endmethod
+
+  method password_cmd
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[4])
+      echo("Usage:  @password <oldpasswd> to <newpasswd>");
+    elseif (crypt(args[2], password[1..2]) != password)
+      echo("Incorrect old password.");
+    else
+      password = crypt(args[4]);
+      echo("Password changed.");
+    endif
+  endmethod
+
+  method inv
+    var thing, nm;
+    ignore E_SERVERDN;
+    for thing in (contents)
+      nm = thing.iname;
+      if (nm == E_SERVERDN)
+        player.tell("  (Ghost of " + tostr(thing) + ")");
+      else
+        player.tell("  " + nm);
+      endif
+    endfor
+  endmethod
+
+  method help_cmd
+    var text;
+    ignore E_METHODNF;
+    if (caller != this)
+      return 1;
+    endif
+    text = location.help(args[2]);
+    if (text)
+      player.telln(text);
+    else
+      player.tell("No help found!");
+    endif
+  endmethod
+
+  method whisper_cmd
+    var who;
+    ignore E_METHODNF;
+    if (caller != this)
+      return 1;
+    endif
+    who = this.match_env(args[4]);
+    if (!who)
+      echo("I don't see that here.");
+    elseif (who.tell(name + " whispers, \"" + args[2] + "\"") == 0)
+      echo("You whisper, \"" + args[2] + "\" to " + who.name);
+    else
+      echo("You can't whisper to that!");
+    endif
+  endmethod
+
+  method blank
+    if (!args[2])
+      this.append("blank", " ");
+    else
+      this.insert("blank", " ", "at", args[2]);
+    endif
+  endmethod
+
+  method delete
+    editing_list = listdelete(editing_list, tonum(args[2]));
+    player.tell("Deleted line " + args[2]);
+  endmethod
+
+  method news_cmd
+    var text;
+    ignore E_METHODNF;
+    if (caller != this)
+      return 1;
+    endif
+    text = location.news(args[2]);
+    if (text)
+      player.telln(text);
+    else
+      player.tell("No news found!");
+    endif
+  endmethod
+
+  method gender
+    return gender;
+  endmethod
+
+  method rm_creation
+    creations = creations - args[1];
+  endmethod
+
+  method init
+    if (this == $player)
+      this.add_owner(#11);
+    elseif (this.can_write("", caller))
+      pass();
+      this.add_owner(this);
+      home = $player_start;
+      this.moveto(home);
+      last_cmd_at = time();
+      #0.add_player(this);
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method gohome_cmd
+    ignore E_SERVERDN;
+    if (caller != this)
+      return 1;
+    endif
+    this.moveto(home, "Click click click...", name + " goes home.", "", name + " comes home.");
+  endmethod
+
+  method wizards_cmd
+    var wiz;
+    echo("Your wizards are:");
+    for wiz in (#0.wizards)
+      player.tell("  " + wiz.name);
+    endfor
+  endmethod
+
+  method sdesc
+    if (this in #0.connected_players)
+      return name + " is here.";
+    else
+      return name + " is here, but is sleeping.";
+    endif
+  endmethod
+
+  method insert
+    var tempstr;
+    ignore E_RANGE;
+    if (typeof(args[2]) == 0)
+      tempstr = args[2];
+    else
+      tempstr = tostr(args[2]);
+    endif
+    if (tonum(args[4]) > lengthof(editing_list))
+      this.append(args[1], tempstr);
+    else
+      editing_list = listinsert(editing_list, tempstr, tonum(args[4]));
+      player.tell("Inserted " + tempstr + " before line " + args[4]);
+    endif
+  endmethod
+
+  method pose_cmd
+    if (caller != this)
+      return 1;
+    endif
+    if (args[2][1] == ":")
+      location.announce(name + args[2][2..]);
+    else
+      location.announce(name + " " + args[2]);
+    endif
+  endmethod
+
+  method home_cmd
+    var what;
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("I don't see that here.");
+    else
+      home = what;
+      player.tell("Home set.");
+    endif
+  endmethod
+
+  method connect
+    echo("*** Connected ***");
+    connected_at = time();
+    this.look_around;
+    if (location)
+      location.announce(name + " has connected.", {player});
+    endif
+  endmethod
+
+  method rename
+    if (editing_type == "v")
+      editing_var = args[2];
+    else
+      editing_method = args[2];
+    endif
+    player.tell("Editing session renamed to " + args[2] + ", to take effect when saved.");
+  endmethod
+
+  method append
+    var tempstr;
+    if (typeof(args[2]) == 0)
+      tempstr = args[2];
+    else
+      tempstr = tostr(args[2]);
+    endif
+    editing_list = listappend(editing_list, tempstr);
+    player.tell("Appended " + tempstr);
+  endmethod
+
+  method list_edit
+    var count, loop, line;
+    if (lengthof(editing_list) < 1)
+      player.tell("Editing buffer currently empty.");
+    endif
+    count = 1;
+    for line in (editing_list)
+      if (!args[2])
+        line = tostr(count) + ":  " + line;
+        for loop in [1..3 - lengthof(tostr(count))]
+          line = " " + line;
+        endfor
+      endif
+      count = count + 1;
+      player.tell(line);
+    endfor
+  endmethod
+
+  method match_env
+    var s, what, loc;
+    ignore E_VARNF, E_SERVERDN;
+    s = args[1];
+    if (!s)
+      return #-1;
+    elseif (s[1] == "#")
+      return toobj(s);
+    elseif (s == "me")
+      return player;
+    elseif (s == "here" && location)
+      return location;
+    elseif (s == "nowhere")
+      return #-1;
+    elseif (s[1] == "$" && lengthof(s) > 1)
+      what = #0.getvar(s[2..]);
+      if (what == E_VARNF || typeof(what) != 2)
+        return #-1;
+      else
+        return what;
+      endif
+    endif
+    what = this.match_contents(s);
+    if (what)
+      return what;
+    endif
+    if (location)
+      what = location.match_contents(s);
+      if (what)
+        return what;
+      endif
+    endif
+    return #-1;
+  endmethod
+
+  method replace
+    this.delete("", args[2]);
+    this.insert("", args[4], "", args[2]);
+  endmethod
+
+  method get_cmd
+    var cont, thing;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (this.match(args[2]))
+      player.tell("What do you think this is, a pick-up joint?");
+    elseif (caller != this)
+      return 1;
+    elseif (args[2] == "all" || args[2] == "everything")
+      cont = location.contents - this;
+      if (!cont)
+        echo("There's nothing here to get!");
+      else
+        for thing in (cont)
+          if (thing.get("all", "") == E_METHODNF)
+            echo(thing.name + ":  You can't get that.");
+          endif
+        endfor
+      endif
+    else
+      return 1;
+    endif
+  endmethod
+
+  method look_cmd
+    if (!args[2])
+      this.look_around;
+    elseif (this.match(args[2]))
+      this.look;
+    else
+      return 1;
+    endif
+  endmethod
+
+  method parse
+    var thing, cmd, r;
+    ignore E_SERVERDN, E_TIMEOUT;
+    if (caller != this && !(caller in #0.wizards))
+      raise E_PERM;
+    endif
+    lock("parse");
+    last_cmd_at = time();
+    cmd = args[1];
+    if (reading)
+      if (cmd == ".")
+        reading = 0;
+        this.(done_reading)(read_input);
+        read_input = "";
+      else
+        read_input = read_input + cmd + "\n";
+      endif
+      return 0;
+    endif
+    if (!cmd)
+      return 0;
+    elseif (cmd[1] == "\"")
+      if (lengthof(cmd) > 1)
+        cmd = "say " + cmd[2..];
+      else
+        cmd = "say ";
+      endif
+    elseif (cmd[1] == ":")
+      if (lengthof(cmd) > 1)
+        cmd = "pose " + cmd[2..];
+      else
+        cmd = "pose ";
+      endif
+    elseif (cmd[1] == ";")
+      if (lengthof(cmd) > 1)
+        cmd = "eval " + cmd[2..];
+      else
+        cmd = "eval ";
+      endif
+    endif
+    if (!this.call_verb(cmd))
+      return 0;
+    endif
+    for thing in (contents)
+      if (thing.call_verb(cmd) == 0)
+        return 0;
+      endif
+    endfor
+    if (location)
+      if (location.call_verb(cmd) == 0)
+        return 0;
+      endif
+      for thing in (location.contents)
+        if (thing != this)
+          if (thing.call_verb(cmd) == 0)
+            return 0;
+          endif
+        endif
+      endfor
+      if (location.go(cmd) == 0)
+        return 0;
+      endif
+      for thing in (location.exits)
+        if (thing.call_verb(cmd) == 0)
+          return 0;
+        endif
+      endfor
+    endif
+    echo("I don't understand that.");
+  endmethod
+
+  method psub
+    var n, s, o, p, q, r, left, right, vartext, settext, retval, methodtext;
+    ignore E_RANGE;
+    n = name;
+    if (gender && gender[1] == "m")
+      s = "he";
+      o = "him";
+      p = "his";
+      q = "his";
+      r = "himself";
+    elseif (gender && gender[1] == "f")
+      s = "she";
+      o = "her";
+      p = "her";
+      q = "hers";
+      r = "herself";
+    else
+      s = "it";
+      o = "it";
+      p = "its";
+      q = "its";
+      r = "itself";
+    endif
+    vartext = "var n,s,o,p,q,r";
+    settext = "n=" + tostr(n) + ";s=" + tostr(s) + ";o=" + tostr(o) + ";p=" + tostr(p) + ";q=" + tostr(q) + ";r=" + tostr(r) + ";";
+    if (typeof(args[2]) == 4)
+      for left in (args[2])
+        if (typeof(left) == 0)
+          vartext = vartext + "," + left;
+          right = args[2][left];
+          if (typeof(right) != 0)
+            right = tostr(right);
+          endif
+          settext = settext + left + "=" + tostr(right) + ";";
+        endif
+      endfor
+      methodtext = vartext + "; " + settext + " return psub(" + tostr(args[1]) + ");";
+      compile(this, "psub_temp_method", methodtext);
+      retval = this.psub_temp_method;
+      this.rm_method("psub_temp_method");
+      return retval;
+    else
+      return psub(args[1]);
+    endif
+  endmethod
+
+  method who_cmd
+    if (caller != this)
+      return 1;
+    endif
+    #0.who;
+  endmethod
+
+  method teleport_cmd
+    var what, dest;
+    what = this.match_env(args[2]);
+    dest = this.match_env(args[4]);
+    if (!what)
+      echo("Teleport what?");
+    elseif (!dest && args[4] != "nowhere" && args[4] != "#-1")
+      echo("Teleport it where?");
+    elseif (!what.moveto(dest, "You feel a wrenching sensation.."))
+      echo("You can't teleport that.");
+    else
+      echo("Teleported.");
+    endif
+  endmethod
+
+  method save
+    var editstr, m, what, line, i;
+    what = editing_obj;
+    if (what.can_write("", caller))
+      editstr = editing_list[1];
+      if (lengthof(editing_list) > 1)
+        for line in (editing_list[2..])
+          editstr = editstr + "\n" + line;
+        endfor
+      endif
+      m = explode(editing_var);
+      if (lengthof(m) > 1)
+        for i in [3..lengthof(m)]
+          m[2] = m[2] + " " + m[i];
+        endfor
+        compile(what, "edit_temp_method", m[1] + "[\"" + m[2] + "\"] = " + tostr(editstr) + ";");
+        what.edit_temp_method;
+        what.rm_method("edit_temp_method");
+      else
+        editing_obj.setvar(editing_var, editstr);
+      endif
+      player.tell("Variable " + editing_var + " on object " + tostr(editing_obj) + " saved.");
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method page_cmd
+    var who, locname;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      echo("Usage:  page <player>");
+      echo("        page <player> with <message>");
+      return 0;
+    endif
+    locname = location.name;
+    who = #0.find_connected_player(args[2]);
+    if (!who)
+      echo("That player is not connected.");
+    elseif (args[4])
+      who.tell(name + " pages, \"" + args[4] + "\"");
+      echo("Your message has been sent.");
+    elseif (typeof(locname) == 0)
+      who.tell("You sense that " + name + " is looking for you in " + locname + ".");
+      echo("Your message has been sent.");
+    else
+      who.tell("You sense that " + name + " is looking for you.");
+      echo("Your message has been sent.");
+    endif
+  endmethod
+
+  method say_cmd
+    if (caller != this)
+      return 1;
+    endif
+    echo("You say, \"" + args[2] + "\"");
+    location.announce(name + " says, \"" + args[2] + "\"", {player});
+  endmethod
+
+  method uptime_cmd
+    if (caller != this)
+      return 1;
+    else
+      player.tell("Up for " + #0.convtime(time() - #0.booted_at));
+    endif
+  endmethod
+
+  method look
+    pass() to #3;
+    if (contents)
+      player.tell("Carrying:");
+      this.inv;
+    endif
+  endmethod
+
+  method look_around
+    var r;
+    ignore E_SERVERDN, E_OBJNF;
+    player = this;
+    r = location.look;
+    if (r == E_SERVERDN)
+      echo("The outlines of the room you are in have suddenly become hazy and indistinct.  Going \"home\" might be useful about now.");
+    elseif (r == E_OBJNF)
+      echo("You're absolutely nowhere.  Go home.");
+    endif
+  endmethod
+
+  method aliases_cmd
+    var what;
+    what = this.match_env(args[2]);
+    what.set_aliases(strsub(args[4], ";", "\n"));
+  endmethod
+
+  method set_name
+    var existing;
+    existing = #0.find_player(args[1]);
+    if (!this.can_write("name", caller))
+      raise E_PERM;
+    elseif (existing && existing != this)
+      raise E_RANGE;
+    else
+      pass(args[1]) to #3;
+    endif
+  endmethod
+
+  method rwho_cmd
+    var sysobj;
+    ignore E_SERVERDN;
+    for sysobj in (servers())
+      echo("Server \"" + servername(sysobj) + "\":  ");
+      if (sysobj.who == E_SERVERDN)
+        echo("  Server down.");
+      else
+        echo("---");
+      endif
+    endfor
+  endmethod
+
+  method quit_cmd
+    if (caller != this && caller != #0 && !(caller in #0.wizards))
+      return 1;
+    endif
+    echo("*** Disconnected ***");
+    disconnect();
+  endmethod
+
+  method disconnect
+    #0.rm_connected_player(this);
+    if (location.disconnect_to)
+      this.moveto(location.disconnect_to, location.disconnect_leave, location.disconnect_oleave, location.disconnect_arrive, location.disconnect_oarrive);
+    else
+      location.announce(name + " has disconnected.", {player});
+    endif
+  endmethod
+
+  method connected_at
+    return connected_at;
+  endmethod
+
+  method clear_edit
+    if (caller == this || caller in owners || caller == #0 || caller in #0.wizards)
+      editing_method = "";
+      editing_obj = #-1;
+      editing_list = {};
+      editing_type = "";
+      editing_var = "";
+      player.tell("Cleared all editing data.");
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method match
+    if (args[1] == "me" && player == this)
+      return 1;
+    else
+      return pass(args[1]) to #3;
+    endif
+  endmethod
+
+  method give_verb
+    var who, what;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  give <object> to <player>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    who = this.match_env(args[4]);
+    if (!what)
+      player.tell("I don't see that here.");
+    elseif (what.location != this)
+      player.tell("You're not carrying that!");
+    elseif (!who)
+      player.tell("I don't see that player here.");
+    elseif (!who.isa($player))
+      player.tell("That's not a player!");
+    elseif (!what.moveto(who))
+      player.tell(who.name + " doesn't want it!");
+    else
+      player.tell("You give " + what.name + " to " + who.name + ".");
+      who.tell(player.name + " gives you " + what.name + ".");
+    endif
+  endmethod
+
+  method exits_cmd
+    var exit, exitname, spos, exitlist;
+    exitlist = {};
+    if (caller != this)
+      return 1;
+    else
+      for exit in (location.exits)
+        if (!exit.dark)
+          exitname = exit.name;
+          spos = ";" in exitname;
+          if (spos)
+            exitname = exitname[1..spos - 1];
+          endif
+          exitlist = listappend(exitlist, exitname);
+        endif
+      endfor
+      if (exitlist)
+        player.tell("Exits:  " + #12.english_list_str(exitlist) + ".");
+      else
+        player.tell("No exits.");
+      endif
+    endif
+  endmethod
+
+  method home
+    return home;
+  endmethod
+
+  method add_creation
+    creations = creations + args[1];
+  endmethod
+
+  method tell
+    var tempstr;
+    if (typeof(args[1]) == 0)
+      tempstr = args[1];
+    else
+      tempstr = tostr(args[1]);
+    endif
+    echo(tempstr);
+  endmethod
+
+  method cpvar_cmd
+    var what, meth, towhat, tometh;
+    what = toobj(explode(args[2], ".")[1]);
+    meth = explode(args[2], ".")[2];
+    towhat = toobj(explode(args[4], ".")[1]);
+    tometh = explode(args[4], ".")[2];
+    if (!towhat.setvar(tometh, what.getvar(meth)))
+      player.tell("Variable copied.");
+    else
+      player.tell("Variable copy failed.");
+    endif
+  endmethod
+
+  method set_password
+    raise E_PERM;
+  endmethod
+
+  method creations
+    return creations;
+  endmethod
+
+endobject
+object #9
+  parents #8;
+
+  str  name = "Generic Builder";
+  list owners = {#11};
+  num  public = 1;
+
+  verb "@addo*wner" : "on to onto" = addowner_cmd;
+  verb "@addo*wner" = addowner_cmd;
+  verb "@addp*arent" : "on to onto" = addparent_cmd;
+  verb "@addp*arent" = addparent_cmd;
+  verb "@clone" : "named" = clone_cmd;
+  verb "@clone" = clone_cmd;
+  verb "@create" = create_cmd;
+  verb "@destroy" = destroy_cmd;
+  verb "@dig" = dig_cmd;
+  verb "@find" = find_cmd;
+  verb "@link" : "to" = link_cmd;
+  verb "@link" = link_cmd;
+  verb "@list" : "on" = list_cmd;
+  verb "@list" = list_cmd;
+  verb "@open" : "to" = open_cmd;
+  verb "@open" = open_cmd;
+  verb "@methods" = methods_cmd;
+  verb "@mutate" : "to into" = mutate_cmd;
+  verb "@mutate" = mutate_cmd;
+  verb "@pub*lish" = publish_cmd;
+  verb "@unpub*lish" = unpublish_cmd;
+  verb "@rmp*arent" : "from on to onto" = rmparent_cmd;
+  verb "@rmp*arent" = rmparent_cmd;
+  verb "@rmo*wner" : "from on to onto" = rmowner_cmd;
+  verb "@rmo*wner" = rmowner_cmd;
+  verb "@set" : "to" = set_cmd;
+  verb "@set" = set_cmd;
+  verb "@show" = show_cmd;
+  verb "@spew" : "on" = spew_cmd;
+  verb "@spew" = spew_cmd;
+  verb "@tel*eport" : "to" = teleport_cmd;
+  verb "@ve*rbs" = verbs_cmd;
+  verb "@decompile" = decompile_cmd;
+  verb "@rmvar" : "on" = rmvar_cmd;
+  verb "@rmvar" = rmvar_cmd;
+
+  method publish_cmd
+    var what;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @publish <thing>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("I don't see that here.");
+    elseif (what.publish)
+      player.tell("You can't publish that.");
+    else
+      player.tell(what.id + " published.");
+    endif
+  endmethod
+
+  method addowner_cmd
+    var what, owner;
+    ignore E_PERM;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  @addowner <what> to <thing>");
+      return 0;
+    endif
+    owner = #0.find_player(args[2]);
+    what = this.match_env(args[4]);
+    if (!owner)
+      player.tell("\"" + args[2] + "\" is not the name of any player.");
+    elseif (!what)
+      player.tell("I don't see that here.");
+    elseif (what.add_owner(owner) == E_PERM)
+      player.tell("Permission denied.");
+    else
+      player.tell("Owner added.");
+    endif
+  endmethod
+
+  method link_cmd
+    var exit;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Link what?");
+    elseif (!args[3])
+      player.tell("Usage:  @link <exit name> to <room #>");
+    else
+      exit = location.match_exit(args[2]);
+      if (!exit)
+        player.tell("I don't know what you want to link!");
+      else
+        this.link(exit, args[4]);
+      endif
+    endif
+  endmethod
+
+  method set_cmd
+    var r, dotpos, objname, propname, what, oldvalue, newvalue;
+    ignore E_METHODNF, E_VARNF;
+    dotpos = "." in args[2];
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4] || !dotpos || dotpos == 1 || dotpos == lengthof(args[2]))
+      player.tell("Usage:  @set <thing>.<property> to <value>");
+    else
+      objname = args[2][..dotpos - 1];
+      propname = args[2][dotpos + 1..];
+      what = this.match_env(args[2][1..dotpos - 1]);
+      if (!what || what.name == E_OBJNF)
+        player.tell("I don't see that here.");
+      else
+        r = what.("set_" + propname)(args[4]);
+        if (r == E_METHODNF)
+          oldvalue = what.getvar(propname);
+          if (oldvalue == E_VARNF)
+            r = what.setvar(propname, args[4]);
+          elseif (typeof(oldvalue) == 0)
+            newvalue = args[4];
+          elseif (typeof(oldvalue) == 1)
+            newvalue = tonum(args[4]);
+          elseif (typeof(oldvalue) == 2)
+            newvalue = toobj(args[4]);
+          else
+            player.tell("Can't @set values of that type yet.");
+            return 0;
+          endif
+          r = what.setvar(propname, newvalue);
+        endif
+        if (typeof(r) != 5)
+          player.tell("Set.");
+        endif
+      endif
+    endif
+  endmethod
+
+  method create_cmd
+    var new;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @create <name>");
+    else
+      new = $thing.clone(args[2]);
+      new.add_owner(player);
+      player.tell("Thing created:  " + new.id);
+    endif
+  endmethod
+
+  method test
+    #11.tell("caller: " + tostr(caller));
+  endmethod
+
+  method destroy_cmd
+    var what;
+    if (caller != this)
+      return 1;
+    endif
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("What's a " + args[2] + "?");
+    else
+      what.destroy;
+      player.tell("Destroyed.");
+    endif
+  endmethod
+
+  method dig_cmd
+    var new;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Dig what?");
+      return 0;
+    endif
+    new = $room.clone(args[2]);
+    new.add_owner(player);
+    player.tell("Room dug:  " + new.id);
+  endmethod
+
+  method decompile_cmd
+    var what;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @dump <object>");
+    else
+      what = this.match_env(args[2]);
+      if (!what)
+        player.tell("I don't see that here.");
+      else
+        player.tell(what.decompile);
+      endif
+    endif
+  endmethod
+
+  method methods_cmd
+    var what, m;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @methods <object>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("I don't see that here.");
+    else
+      player.tell("Methods on " + what.id + ":");
+      for m in (sort(what.methods))
+        player.tell("  " + m);
+      endfor
+      player.tell("---");
+    endif
+  endmethod
+
+  method parent_result
+    if (args[1] == E_OBJNF)
+      player.tell("Parent does not exist.");
+    elseif (args[1] == E_INVIND)
+      player.tell("Parent must be local.");
+    elseif (args[1] == E_PERM)
+      player.tell("Parent permission denied.");
+    elseif (args[1] == E_RANGE)
+      player.tell("Object must have at least one parent.");
+    elseif (args[1] == E_MAXREC)
+      player.tell("New parent would cause a loop.");
+    else
+      player.tell("Parent invalid.");
+    endif
+  endmethod
+
+  method show_cmd
+    var r, what;
+    ignore E_METHODNF, E_SERVERDN, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @show <object>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    if (!what || what.name == E_OBJNF)
+      player.tell("I don't see that here.");
+    else
+      r = what.show(args[1], args[2]);
+      if (r == E_SERVERDN || r == E_METHODNF)
+        player.tell("You can't show that.");
+      endif
+    endif
+  endmethod
+
+  method addparent_cmd
+    var r, what, parent;
+    ignore E_RANGE, E_INVIND, E_MAXREC, E_PERM, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  @addparent <what> to <thing>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    parent = this.match_env(args[2]);
+    if (!what || !parent)
+      player.tell("I don't see that here.");
+    else
+      r = what.add_parent(parent);
+      if (typeof(r) == 5 && r != E_NONE)
+        this.parent_result(r);
+      else
+        player.tell("Parent added.");
+      endif
+    endif
+  endmethod
+
+  method find_cmd
+    var nm, thing;
+    ignore E_METHODNF;
+    if (caller != this)
+      return 1;
+    endif
+    for thing in (creations)
+      if (args[2])
+        if (thing.match(args[2]))
+          player.tell(thing.id);
+        endif
+      else
+        player.tell(thing.id);
+      endif
+    endfor
+    player.tell("---");
+  endmethod
+
+  method init
+    if (this == $builder)
+      this.add_owner(#11);
+    else
+      pass();
+    endif
+  endmethod
+
+  method rmparent_cmd
+    var r, what, parent;
+    ignore E_RANGE, E_INVIND, E_MAXREC, E_PERM, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  @rmparent <what> from <thing>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    parent = this.match_env(args[2]);
+    if (!what || !parent)
+      player.tell("I don't see that here.");
+    else
+      r = what.rm_parent(parent);
+      if (typeof(r) == 5 && r != E_NONE)
+        this.parent_result(r);
+      else
+        player.tell("Parent removed.");
+      endif
+    endif
+  endmethod
+
+  method unpublish_cmd
+    var what;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @unpublish <thing>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("I don't see that here.");
+    elseif (what.unpublish)
+      player.tell("You can't publish that.");
+    else
+      player.tell(what.id + " unpublished.");
+    endif
+  endmethod
+
+  method rmowner_cmd
+    var what, owner;
+    ignore E_PERM;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  @rmowner <what> from <thing>");
+      return 0;
+    endif
+    owner = #0.find_player(args[2]);
+    what = this.match_env(args[4]);
+    if (!owner)
+      player.tell("\"" + args[2] + "\" is not the name of any player.");
+    elseif (!what)
+      player.tell("I don't see that here.");
+    elseif (what.rm_owner(owner) == E_PERM)
+      player.tell("Permission denied");
+    else
+      player.tell("Owner removed.");
+    endif
+  endmethod
+
+  method mutate_cmd
+    var r, what, newparent;
+    ignore E_RANGE, E_INVIND, E_MAXREC, E_PERM, E_OBJNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      player.tell("Usage:  @mutate <thing> into <what>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    newparent = this.match_env(args[4]);
+    if (!what || !newparent)
+      player.tell("I don't see that here.");
+    else
+      r = what.chparents({newparent});
+      if (typeof(r) == 5 && r != E_NONE)
+        this.parent_result(r);
+      else
+        player.tell("Mutated.");
+      endif
+    endif
+  endmethod
+
+  method save
+    pass(args);
+  endmethod
+
+  method clone_cmd
+    var parent, new;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || args[3] && !args[4])
+      player.tell("Usage:  @clone <thing>");
+      player.tell("        @clone <thing> named <name>");
+      return 0;
+    endif
+    parent = this.match_env(args[2]);
+    if (!parent)
+      player.tell("I don't see that here.");
+    else
+      new = parent.clone(args[4]);
+      if (!new)
+        player.tell("You can't clone that.");
+      else
+        new.add_owner(player);
+        player.tell("New \"" + parent.name + "\" cloned:  " + new.id);
+      endif
+    endif
+  endmethod
+
+  method list_cmd
+    var what, options, option, numbers, brackets, indent, methodname;
+    numbers = 1;
+    brackets = 0;
+    indent = 2;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[4])
+      player.tell("Usage:  @list [-b] [-n] <method> on <object>");
+    else
+      what = this.match_env(args[4]);
+      if (!what)
+        player.tell("I don't see that here.");
+      else
+        options = explode(args[2]);
+        if (lengthof(options) > 1)
+          for option in (options)
+            if (option == "-b")
+              brackets = 1;
+            elseif (option == "-n")
+              numbers = 0;
+            elseif (option[1..2] == "-i")
+              indent = tonum(option[3..]);
+            elseif (option[1] == "-")
+              player.tell("Usage:  @list [-b] [-n] [-i<num> ] <method> on <object>");
+              return 0;
+            else
+              methodname = option;
+            endif
+          endfor
+        else
+          methodname = args[2];
+        endif
+        player.tell(what.list_method(methodname, numbers, brackets, indent));
+      endif
+    endif
+  endmethod
+
+  method spew_cmd
+    var what;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[4])
+      player.tell("Usage:  @spew <method> on <object>");
+    else
+      what = this.match_env(args[4]);
+      if (!what)
+        player.tell("I don't see that here.");
+      else
+        player.tell(what.spew_method(args[2]));
+      endif
+    endif
+  endmethod
+
+  method rmvar_cmd
+    var r, what;
+    ignore E_VARNF, E_PERM;
+    if (caller != this)
+      return 1;
+    endif
+    if (!args[2] || !args[3] || !args[4])
+      echo("Usage:  @rmvar <var> on <obj>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    if (!what)
+      echo("I don't see that here.");
+    else
+      r = what.rm_var(args[2]);
+      if (typeof(r) == 5 && r != E_NONE)
+        echo(tostr(r) + ".");
+      else
+        echo("Variable removed.");
+      endif
+    endif
+    return 0;
+  endmethod
+
+  method link
+    var new_dest;
+    ignore E_METHODNF;
+    new_dest = this.match_env(args[2]);
+    if (!new_dest)
+      player.tell("Link to where?");
+    elseif (!new_dest.link_ok)
+      player.tell("You can't link to that!");
+    else
+      if (args[1].set_dest(new_dest))
+        player.tell("Linked.");
+      else
+        player.tell("Permission denied.");
+      endif
+    endif
+  endmethod
+
+  method open_cmd
+    var exit;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Open an exit in what direction?");
+    else
+      if (!location.open_ok)
+        player.tell("You can't open an exit here!");
+      else
+        exit = $exit.clone(args[2]);
+        exit.add_owner(player);
+        location.add_exit(exit);
+        exit.set_source(location);
+        player.tell("Exit " + exit.id + " opened.");
+        if (args[3])
+          this.link(exit, args[4]);
+        endif
+      endif
+    endif
+  endmethod
+
+  method verbs_cmd
+    var what, v;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      player.tell("Usage:  @verbs <object>");
+      return 0;
+    endif
+    what = this.match_env(args[2]);
+    if (!what)
+      player.tell("I don't see that here.");
+    else
+      for v in (what.verbs)
+        if (v[2])
+          player.tell("  " + v[1] + " : " + v[2] + " = " + v[3]);
+        else
+          player.tell("  " + v[1] + " = " + v[3]);
+        endif
+      endfor
+      player.tell("---");
+    endif
+  endmethod
+
+endobject
+object #10
+  parents #9;
+
+  str  name = "Generic Programmer";
+  list owners = {#11};
+  num  public = 1;
+  str  prog_method = "";
+  obj  prog_obj = #-1;
+
+  verb "eval" = eval_cmd;
+  verb "@prog*ram" : "on" = program_cmd;
+  verb "@prog*ram" = program_cmd;
+  verb "@ps" = ps_cmd;
+  verb "@kill" = kill_cmd;
+  verb "@verb" : "on" = verb_cmd;
+  verb "@verb" = verb_cmd;
+  verb "@rmv*erb" : "on" = rmverb_cmd;
+  verb "@rmv*erb" = rmverb_cmd;
+  verb "@rmm*ethod" : "on" = rmmethod_cmd;
+  verb "@rmm*ethod" = rmmethod_cmd;
+  verb "edit_method" : "on" = edit_method_cmd;
+  verb "save" = save;
+  verb "@cpmethod" : "to" = cpmethod_cmd;
+  verb "@force" : "to" = force_cmd;
+  verb "@force" = force_cmd;
+  verb "pupdrop" = drop_cmd;
+  verb "pupget" = get_cmd;
+
+  method kill_cmd
+    var r, pid;
+    ignore E_PERM;
+    pid = tonum(args[2]);
+    r = kill(pid);
+    if (r == E_PERM)
+      echo("Permission denied.");
+    elseif (r != 0)
+      echo("No such process.");
+    else
+      echo("Killed.");
+    endif
+  endmethod
+
+  method test
+    #11.tell("caller: " + tostr(caller));
+    pass();
+  endmethod
+
+  method cpmethod_cmd
+    var what, meth, towhat, tometh;
+    what = toobj(explode(args[2], ".")[1]);
+    meth = explode(args[2], ".")[2];
+    towhat = toobj(explode(args[4], ".")[1]);
+    tometh = explode(args[4], ".")[2];
+    if (towhat.compile(tometh, what.list_method(meth, 0)))
+      player.tell("Method copied.");
+    else
+      player.tell("Method copy failed.");
+    endif
+  endmethod
+
+  method verb_cmd
+    var r, newargs, what, preplist, verblist;
+    if (caller != this)
+      return 1;
+    endif
+    newargs = explode(args[2]);
+    if (!args[2] || !args[3] || !args[4] || lengthof(newargs) < 2)
+      echo("Usage:  @verb <verb> <method-to-call> on <obj>");
+      echo("        @verb <verb> <preposition> <method-to-call> on <obj>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    verblist = strsub(newargs[1], "/", " ");
+    if (lengthof(newargs) == 2)
+      preplist = "";
+    else
+      preplist = #1.implode(newargs[2..lengthof(newargs) - 1], " ");
+    endif
+    if (!what)
+      echo("I don't see that here.");
+      return 0;
+    endif
+    r = what.add_verb(verblist, preplist, newargs[lengthof(newargs)]);
+    if (r == E_PERM)
+      echo("Permission denied.");
+    else
+      echo("Verb added.");
+    endif
+    return 0;
+  endmethod
+
+  method edit_method_cmd
+    var what;
+    ignore E_METHODNF;
+    what = this.match_env(args[4]);
+    if (!what)
+      player.tell("I don't see that here.");
+    else
+      if (what.can_write("", caller))
+        what = what.find_method(args[2]);
+        if (!what)
+          what = this.match_env(args[4]);
+          editing_list = {"raise E_METHODNF;"};
+        else
+          editing_list = explode(what.list_method(args[2], 0), "\n");
+        endif
+        editing_obj = what;
+        editing_type = "m";
+        editing_var = "";
+        editing_method = args[2];
+        player.tell("Now editing method " + args[2] + " on object " + tostr(what));
+      else
+        raise E_PERM;
+      endif
+    endif
+  endmethod
+
+  method init
+    if (this == $programmer)
+      this.add_owner(#11);
+    else
+      pass();
+    endif
+  endmethod
+
+  method done_programming
+    if (prog_obj == #-1)
+      compile(args[1]);
+    else
+      if (!compile(prog_obj, prog_method, args[1]))
+        echo("Method programmed.");
+      else
+        raise E_PERM;
+      endif
+    endif
+  endmethod
+
+  method ps_cmd
+    var i, line, task;
+    echo("PID     PLAYER          METHOD          STATUS TICKS AGE");
+    for task in (ps())
+      if (task[4] != this && !("a" in args[2]))
+        continue;
+      endif
+      line = pad(tostr(task[1]), 7) + " " + pad(task[4].id, 15) + " " + pad(tostr(task[6]) + "." + task[9], 15) + " ";
+      if (task[10] == 0)
+        line = line + "MSG    ";
+      elseif (task[10] == 1)
+        line = line + "LOCK   ";
+      elseif (task[10] == 2)
+        line = line + "TIMER  ";
+      elseif (task[10] == 3)
+        line = line + "SYS_MSG";
+      endif
+      line = line + pad(tostr(task[3]), -7) + pad(tostr(task[2]), -5);
+      echo(line);
+    endfor
+  endmethod
+
+  method rmverb_cmd
+    var what, r;
+    ignore E_VERBNF, E_PERM;
+    if (caller != this)
+      return 1;
+    endif
+    if (!args[2] || !args[3] || !args[4])
+      echo("Usage:  @rmverb <verb> on <obj>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    if (!what)
+      echo("I don't see that here.");
+    else
+      r = what.rm_verb(args[2]);
+      if (typeof(r) == 5 && r != E_NONE)
+        echo(tostr(r) + ".");
+      else
+        echo("Verb removed.");
+      endif
+    endif
+    return 0;
+  endmethod
+
+  method rmmethod_cmd
+    var r, what;
+    ignore E_METHODNF, E_PERM;
+    if (caller != this)
+      return 1;
+    endif
+    if (!args[2] || !args[3] || !args[4])
+      echo("Usage:  @rmmethod <method> on <obj>");
+      return 0;
+    endif
+    what = this.match_env(args[4]);
+    if (!what)
+      echo("I don't see that here.");
+    else
+      r = what.rm_method(args[2]);
+      if (typeof(r) == 5 && r != E_NONE)
+        echo(tostr(r) + ".");
+      else
+        echo("Method removed.");
+      endif
+    endif
+    return 0;
+  endmethod
+
+  method program_cmd
+    var what;
+    ignore E_METHODNF;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] && !args[3])
+      echo("Entering programming mode.  Use \".\" to end");
+      prog_obj = #-1;
+      this.input_to("done_programming");
+    elseif (!args[2] || !args[3])
+      echo("Usage:  @program <method> on <object>");
+      echo("        @program");
+    else
+      what = this.match_env(args[4]);
+      if (!what)
+        echo("I don't see that here.");
+      else
+        prog_obj = what;
+        prog_method = args[2];
+        echo("Programming " + args[2] + " on " + what.id);
+        echo("Entering programming mode.  Use \".\" to end");
+        this.input_to("done_programming");
+      endif
+    endif
+  endmethod
+
+  method eval_cmd
+    if (caller != this)
+      return 1;
+    endif
+    if (!compile(this, "eval_tmp", args[2]))
+      echo("--> " + tostr(this.eval_tmp));
+      rm_method("eval_tmp");
+    endif
+  endmethod
+
+  method save
+    var compstr, line;
+    if (editing_obj.can_write("", caller))
+      if (editing_type == "v")
+        pass(args);
+      else
+        compstr = "";
+        for line in (editing_list)
+          compstr = compstr + line + "\n";
+        endfor
+        if (!compile(editing_obj, editing_method, compstr))
+          player.tell("Method " + editing_method + " on object " + tostr(editing_obj) + " compiled.");
+        endif
+      endif
+    else
+      raise E_PERM;
+    endif
+  endmethod
+
+  method force_cmd
+    var who;
+    if (caller != this)
+      return 1;
+    elseif (!args[2] || !args[3] || !args[4])
+      echo("Usage:  @force <player> to <cmd>");
+      return 0;
+    endif
+    who = #0.find_player(args[2]);
+    if (!who)
+      echo("Force whom?");
+    else
+      player = who;
+      player.parse(args[4]);
+    endif
+  endmethod
+
+endobject
+object #11
+  parents #10;
+
+  str  editing_type = "m";
+  str  editing_method = "compile";
+  num  last_cmd_at = 898288902;
+  list dark_vars = {};
+  list test = {#10, "test"};
+  list contents = {#19, #171, #17, #15};
+  str  editing_var = "";
+  str  name = "Wizard";
+  str  gender = "male";
+  str  read_input = "";
+  obj  editing_obj = #1;
+  str  password = "HK9fLblnE/EiY";
+  obj  sublocation = #-1;
+  list owners = {#11};
+  str  desc = "A short, aged guy with a pointy hat.";
+  str  done_reading = "done_programming";
+  num  public = 1;
+  str  prog_method = "unsafe_cmd";
+  obj  location = #13;
+  str  exit = "test";
+  num  connected_at = 898288988;
+  obj  prog_obj = #8;
+  str  aliases = "tz\n chaos lord tzeentch";
+  num  reading = 0;
+  obj  home = #13;
+  list editing_list = {"#11.tell(\"ARgs: \" + tostr(this) + \", \" + args[1] + \", \" + args[2] + \", \" + tostr(player) );", "if (!this.can_write(\"\", caller))", "  raise E_PERM;", "endif", "return !compile(this, args[1], args[2]);"};
+  list creations = {#1, #0, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #14, #19, #25, #26, #44, #16, #17, #18, #65, #67, #71, #72, #161, #166, #171, #152};
+
+  verb "@wiz*ard" = wiz_cmd;
+  verb "@dewiz*ard" = dewiz_cmd;
+  verb "@mem" = mem_cmd;
+  verb "@cachestats @cache_stats @cs" = cachestats_cmd;
+  verb "@vis*itors" = visitors_cmd;
+  verb "@boot" = boot_cmd;
+  verb "@shout" = shout_cmd;
+  verb "@shutdown" = shutdown_cmd;
+  verb "fixexits" = fixexits;
+  verb "@sync" = sync_cmd;
+  verb "scry_far" = scry;
+  verb "test" = test;
+
+  method dewiz_cmd
+    var who;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      echo("Usage:  @dewizard <player>");
+      return 0;
+    endif
+    who = #0.find_player(args[2]);
+    if (!who)
+      echo("I couldn't find that player.");
+    elseif (!(who in #0.wizards))
+      echo("That's not a wizard.");
+    elseif (who == player)
+      echo("You can't dewiz yourself; ask another wizard.");
+    else
+      #0.rm_wizard(who);
+    endif
+  endmethod
+
+  method boot_cmd
+    var who;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      echo("Usage:  @boot <player>");
+      return 0;
+    endif
+    who = #0.find_connected_player(args[2]);
+    if (!who)
+      echo("That player is not connected.");
+    else
+      if (who.quit_cmd)
+        echo("You can't boot that player.");
+      else
+        echo("Player booted.");
+      endif
+    endif
+  endmethod
+
+  method wiz_cmd
+    var who;
+    if (caller != this)
+      return 1;
+    elseif (!args[2])
+      echo("Usage:  @wizard <player>");
+      return 0;
+    endif
+    who = #0.find_player(args[2]);
+    if (!who)
+      echo("I couldn't find that player.");
+    elseif (who in #0.wizards)
+      echo(who.name + " is already a wizard.");
+    elseif (!(who in #0.players))
+      echo("That's not a player.");
+    else
+      #0.add_wizard(who);
+    endif
+  endmethod
+
+  method visitors_cmd
+    var item, id;
+    ignore E_SERVERDN;
+    if (caller != this)
+      return 1;
+    endif
+    echo("Remote objects:");
+    for item in (#0.visitors)
+      id = item[1].id;
+      if (id == E_SERVERDN)
+        echo("(Ghost of " + tostr(item[1]) + ") is in " + item[2].id);
+      else
+        echo(item[1].id + " is in " + item[2].id);
+      endif
+    endfor
+    echo("---");
+  endmethod
+
+  method scry
+    var server, what, sname;
+    ignore E_METHODNF, E_OBJNF, E_TIMEOUT;
+    for server in (#0.connected_servers)
+      sname = "Wizard";
+      for what in [1..server.dbtop]
+        what = toobj("#" + tostr(what) + "@" + sname);
+        if (!what.name)
+          continue;
+        endif
+        if (match(what.name, args[2], "\n"))
+          what.show;
+          return 0;
+        endif
+      endfor
+    endfor
+    player.tell("The waters are cloudy.");
+  endmethod
+
+  method shout_cmd
+    var dude, msg;
+    if (caller != this)
+      return 1;
+    endif
+    msg = "Wizard";
+    for dude in (#0.connected_players)
+      dude.tell(msg);
+    endfor
+  endmethod
+
+  method init
+    if (this == $wizard)
+      name = "Wizard";
+      password = "HK9fLblnE/EiY";
+      desc = "A short, aged guy with a pointy hat.";
+      this.add_owner(#11);
+    endif
+    pass() to #8;
+  endmethod
+
+  method shutdown_cmd
+    if (caller != this)
+      return 1;
+    endif
+    writelog("SHUTDOWN by " + this.id);
+    shutdown();
+  endmethod
+
+  method cachestats_cmd
+    echo(cache_stats());
+  endmethod
+
+  method sync_cmd
+    if (caller == this)
+      sync();
+    endif
+  endmethod
+
+  method parse
+    pass(@args);
+  endmethod
+
+  method match_full
+    if (args[1] == "me" && player == this)
+      return 1;
+    else
+      return pass(args[1]) to #3;
+    endif
+  endmethod
+
+  method mem_cmd
+    if (caller != this)
+      return 1;
+    endif
+    echo(checkmem());
+  endmethod
+
+endobject
+object #12
+  parents #4;
+
+  num  proper_name = 1;
+  str  name = "Network Tools";
+  str  victim = "@localhost";
+  obj  who = #31;
+  list owners = {#11};
+  str  desc = "";
+  obj  location = #6;
+
+  verb "finger" = finger;
+
+  method finger
+    var atpos, host;
+    atpos = "@" in args[2];
+    if (atpos)
+      if (atpos >= lengthof(args[2]))
+        player.tell("Usage:  finger user [@host]");
+        return 0;
+      endif
+      victim = args[2][1..atpos - 1];
+      host = args[2][atpos + 1..];
+      who = player;
+      connect(host, 79);
+    else
+      who = #0.find_player(args[2]);
+      if (!who)
+        player.tell("I can't find that player.");
+      else
+        player.tell(who.id);
+        if (who in #0.connected_players)
+          player.tell("On since " + ctime(player.connected_at));
+          player.tell("Idle " + #0.convtime(player.last_cmd_at - time()));
+          player.tell("Location:  " + who.location.id);
+        else
+          player.tell("Last connected at " + ctime(who.last_cmd_at));
+        endif
+      endif
+    endif
+  endmethod
+
+  method init
+    if (this == $network_tools)
+      this.add_owner(#11);
+      this.moveto(#11);
+      desc = "";
+    endif
+  endmethod
+
+  method connect
+    echo(victim);
+    desc = "";
+  endmethod
+
+  method parse
+    desc = desc + args[1] + "\n";
+  endmethod
+
+  method disconnect
+    at (time() + 1)
+      who.tell("------------------------ finger output ----------------------");
+      who.tell(desc);
+      who.tell("---------------------- end finger output --------------------");
+    endat
+  endmethod
+
+endobject
+object #14
+  parents #4;
+
+  list contents = {};
+  str  name = "Generic Help Object";
+  list owners = {#11};
+  num  public = 1;
+  obj  location = #6;
+  map  help_list = ["" => "No help defined!"];
+  obj  home = #13;
+
+  verb "@sethelp" : "to" = sethelp;
+  verb "@listhelp" = listhelp;
+  verb "edit_help" = edit_help;
+  verb "rename_help" = rename_help;
+
+  method edit_help
+    player.edit_var_cmd(args[1], "help_list " + args[2], "on", tostr(this));
+  endmethod
+
+  method listhelp
+    if (!this.can_read("help_list", caller))
+      raise E_PERM;
+    else
+      player.tell(help_list[args[2]]);
+    endif
+  endmethod
+
+  method sethelp
+    if (!this.can_write("help_list", caller))
+      raise E_PERM;
+    else
+      help_list[args[2]] = args[4];
+      player.tell("Set help for topic " + tostr(args[2]) + " to " + tostr(args[4]));
+    endif
+  endmethod
+
+  method test
+    return help_list[1];
+  endmethod
+
+  method rename_help
+    player.rename(args[1], "help_list " + args[2]);
+  endmethod
+
+  method help
+    var last, cur;
+    ignore E_MAPNF;
+    cur = help_list[args[1]];
+    while (cur)
+      last = cur;
+      cur = help_list[cur];
+    endwhile
+    return last;
+  endmethod
+
+endobject
+object #15
+  parents #14;
+
+  list contents = {};
+  str  name = "Global Help Object";
+  list owners = {#11};
+  obj  location = #11;
+  map  help_list = ["" => "intro", "sleep" => "sleep()", "whisper" => "Command:    whisper <message> to <player>\n\nSend a private <message> to a <player> in the same room as you.\nIf the parser gives you grief, put your message in doublequotes, eg.,\nwhisper \"give that ugly mail bomb to ghond\" to joe\n\nSee also:   say, pose, page, :, \"\n", "playing2" => " \nOther General Use Commands\n==========================\n \nnews:  Another useful source of information besides help is news, which works in much the same way.  News is used to provide up-to-date information about this particular server.\nhome:  If you are lost, you can go back to your home by typing 'home'.\n@who/who:  To find out who is on the server with you, type '@who'.\nrwho:  To find out who is on the network of servers with you, type rwho.\n@quit/quit:  To end your MUDding session, type '@quit'.\n@password:  To change your password, type '@password <oldpass> to <newpass>'.\nwizards:  To get a list of this server's wizards, type 'wizards'.\nuptime:  To find out how long this server has been up, type 'uptime'.\n \n", "ps" => "ps()", "chparents" => "chparents()", "disconnect" => "Function:  disconnect()\n\nSyntax:    disconnect()\n\n\nDisconnect the current object.\n\n", "@teleport" => "Command:    @teleport <object> to <destination>\n\nMove an object to a new location.\n\nSee also:   @show, go, get, drop\n", "clear_edit" => " \nCommand:    clear_edit\n \nClears all aspects of the current editing session.\n \nSee also: editing, editing commands", "examine" => "look", "talking" => " \nTalking\n=======\n \nTalking is the simplest and most basic form of communication you will engage in on the MUD.  When someone is talking in the room you are in, you'll see something like, 'Turgul says, \"Hi!\"', and when you talk you'll see something like 'You say, \"Hi!\"'.\nTo talk, all you need to do is type 'say <stuff>', without the quotes, replacing <stuff> with what you want to say.  Talk also has a short form, \", which works the same way (except you don't need the space), so 'talk hi' is the same as '\"hi'.\n \n", "getvar()" => "Function:  getvar()\n\nSyntax:    getvar( _str_ )\n\n\nGets the value of the variable named _str_ on the current object.\nNormally, one would just reference the variable in COOL code by name,\nbut getvar() allows the use of an arbitrary string to get the value of\na variable.  Example:\n\ngetvar (\"abc\" + \"def\")\n\nwould return the value of the variable named abcdef on the current\nobject.\n\n", "writelog()" => "Function:  writelog()\n\nSyntax:    writelog(uncarg{str })\n\n\nWrite _str_ to the logfile.  The string is prefixed by the current date\nand time.\n\n", "toerr()" => "Function:  toerr()\n\nSyntax:    toerr( _var_ )\n\n\nConvert a string, number, or object value into an error value.  Strings\nare parsed, the same way  parses errors (\"E_TYPE\" becomes E_TYPE).\nNumbers are converted by using the number as the internal error ID.\nObject values are converted by using the object ID portion as the error\nID.\n\n", "lock" => "lock()", "psub" => "psub()", "rm_var" => "rm_var()", "@aliases" => " \nCommand:    @aliases <thing> to <string>\n \nSets aliases on <thing>.  The aliases in <string> should be seperated by ;'s.\n \nSee also: @rename\n \n", "test" => "", "echo_file" => "echo_file()", "@mutate" => "Command:    @mutate <object> to/into <parent>\n\nMake <parent> the only parent of <object>.  Any existing variables attached\nto <object> will still remain attached.  The \"init\" method is *not* called,\nso the object may not get the appropriate variables.\n\nSee also:   @addparent, @rmparent, @clone, @destroy\n", "random()" => "Function:  random()\n\nSyntax:    random( _num_ )\n\n\nReturn a random number 1 .._num_\n\n", "echo_file()" => "Function:  echo_file()\n\nSyntax:    echo_file( _str_ )\n\n\nRead in the contents of the local file _str_, and echo them, one like\nat a time, to the current object.  The file is located relative to\nRUNDIR (usu. bin/online) of the server's installation.\n\n", "@addwriteok" => " \nCommand:    @addwriteok <variable> on <object>\n \nAdds <variable> to the list of world-writable variables on <object>.\n\nSee also:   @addlight, @rmlight, @adddark, @rmdark, @rmwriteok, @publish\n \n", "eval" => "Command:    eval <code>\n                      ; <code>\n\nEvaluate one or more statements of COOL code.  The return value is displayed.\nEg.,\n\n    ;return \"abc\" + \"def\";\n    --> \"abcdef\"\n\nSee also:   @program, compile()\n", "@kill" => "Command:    @kill <task>\n\nHalt the task with ID <task>.\n\nSee also:   @ps\n", "shutdown" => "shutdown()", "drop" => "Command:    drop <object>\n            throw <object>\n\nRemove an object from your inventory, and place it on the ground. \n\"drop all\" will empty your inventory.\n\nSee also:   get\n", "getvar" => "getvar()", "\"" => "say", "strsub" => "strsub()", "commands" => " \nCommands\n========\n \nThe following sets of commands are available on this server.  Those listed as player commands can only be used if you have the $player object as one of your ancestorys.  Builder commands can only be used by descendents of $builder, and similarily for programmer commands and $programmer and wizard commands and $wizard.  These are, generally, #8, #9, #10, and #11 respectively.\n \nplayer commands/commands1:   General use commands.\nbuilder commands/commands2:  Miscellaneous commands of use to all builders.\nprogrammer commands/commands3:  Commands of use to all programmers.\nediting commands/commands4: The in-place editing facility.\nobject commands/commands5:  Commands for particular classes of object.\npermissions commands/commands6: Commands for permission setting.\n \n", "padc" => "padc()", "password" => "Command:    password <oldpasswd> to <newpasswd>\n            @password <oldpasswd> to <newpasswd>\n\nChanges your password.  You must specify your old password, <oldpasswd>,\nas well as your new password, <newpasswd>.  Passwords in COOLMUD are stored\nin encrypted form.\n\nSee also:   \n", "objsize" => "objsize()", "lengthof" => "lengthof()", "setremove()" => "Function:  setremove()\n\nSyntax:    setremove( _list_ , _value_ )\n\n\nRemove _value_ from _list_, anywhere in the list.  Returns the new\nlist.\n\n", "list_method()" => "Function:  list_method()\n\nSyntax:    list_method( _str_ [ , _lineno_ [ ,  _fullbrackets_ [ ,\n_indent_ ] ] ] )\n\n\nReturns a string containing the decompiled code for method _str_.  This\nworks by turning the stack machine code back into readable form.  It\ndoes automatic indentation, line numbering, and smart bracketing (ie.,\nit will use the minimum number of brackets when decompiling an\nexpression).  The three optional arguments are numeric arguments which\ncontrol the decompilation:\n\n", "@rmwriteok" => " \nCommand:    @rmwriteok <variable> on <object>\n \nRemoves <variable> from the list of world-writable variables on <object>.\n\nSee also:   @addlight, @rmlight, @adddark, @rmdark, @addwriteok, @publish\n \n", "padl" => "padl()", "tostr" => "tostr()", "rm_verb" => "rm_verb()", "editing commands" => " \nEditing Commands\n================\n \nPlayer Editing Commands\n-----------------------\n \nedit_var      save         append       insert\nlist          delete       clear_edit   rename\n  \nProgrammer Editing Commands\n---------------------------\n \nedit_method\n \n", "listfuncs" => "#!/usr/bin/perl\n\n$started = 0;\nwhile(<>) {\n    if (/subsubsection{func (.*)((.*))}/) {\n  if ($started) {\n       } else {\n          $started = 1;\n     }\n     $name = $1;\n   $args = $2;\n   $name =~ s///;\n       $args =~ s/{funcarg(W*)(S*)([^}]*)}/$1_$2_$3/g;\n    $args =~ s/$//g;\n     print \"$name()", "cache_stats" => "cache_stats()", "exits" => " \nCommand:    exits\n \nLists all of the exits leading out of the room.  Unless the room owner is hiding some...\n \n", "setadd" => "setadd()", "@rmmethod" => "Command:    @rmmethod       <method> on <object>\n\nRemove <method> from <object>.  You must own <object>.\n\nSee also:   @methods, @program\n", "list_method" => "list_method()", "stand" => " \nCommand:    stand [up/up from] <furniture>\n \nStand up from the named piece of <furniture> you were sitting or lying on.\n \nSee also: sit, lie\n \n", "funclist" => "clone()\ndestroy()\nchparents()\nlock()\nadd_verb()\nrm_verb()\nrm_method()\nrm_var()\nunlock()\nverbs()\nvars()\nmethods()\ngetvar()\nsetvar()\nhasparent()\nfind_method()\nspew_method()\ndecompile()\nobjsize()\necho()\necho_file()\nquit()\nprogram()\ntypeof()\nlengthof()\nserverof()\nservername()\nservers()\nexplode()\ntime()\nctime()\ncrypt()\nmatch()\nmatch_full()\npsub()\nstrsub()\npad()\nrandom()\ncompile()\nsetadd()\nsetremove()\nlistdelete()\ntonum()\ntoobj()\ntostr()\ntoerr()\nsleep()\nkill()\nps()\nshutdown()\ndump()\nwritelog()\ncheckmem()\ncache_stats()\n", "give" => " \nCommand:    give <thing> to <person>\n \nGives the named object in your inventory to the named person.\n \nSee also: get, drop, inventory\n \n", "lie" => " \nCommand:    lie [on/down on] <furniture>\n \nLie down on the named piece of furniture.\n \nSee also: sit, stand\n \n", "compile" => "compile()", "pose" => " \nCommand: pose <message>\n            : <message>\n \nDisplays <message> to everyone in the room, prepended with your name.\nFor example, if your name is \"Joe\" and you type \":smiles.\", everyone\nin the room would see \"Joe smiles.\"\nAlso, if <message> starts with ':', in either form, the space will be removed, so if you type \"::'s smiling.\", everyone in the room would see \"Joe's smiling.\".\n \nSee also:   say, whisper, page, \", :\n\n ", "can_write()" => " \nFunction:  #1.can_write\n \nSyntax:    this.can_write(<var_name>, <caller> );\n \nTests whether the calling method can write the variable <var_name> on this object.  Caller is sent explicitely as this function is likely to be called by getvar (or other functions) on this object, so by the time can_write is called the caller is wrong.\nTo test general writeability of the object, call this.can_write(\"\", caller).  This will generally return 1 if the calling player owns the object.\nNote that the return value is guaranteed to be either 1 or 0.\n \nSee also: can_read().\n \n", "lengthof()" => "Function:  lengthof()\n\nSyntax:    lengthof( _var_ )\n\n\nReturns a number representing the length of _var_.  _var_ must be a\nstring or list expression.\n\n", "setadd()" => "Function:  setadd()\n\nSyntax:    setadd( _list_ , _value_ )\n\n\nThis function adds _value_ to _list_, as long as it's not already\npresent.  Returns the new list.\n\n", "echo()" => "Function:  echo()\n\nSyntax:    echo( _str_ )\n\n\nDisplay _str_ to the current object.  Does nothing if the current\nobject is not a connected player.\n\n", "can_read()" => " \nFunction:  #1.can_read\n \nSyntax:    this.can_read(<var_name>, <caller> );\n \nTests whether the calling method can read the variable <var_name> on this object.  Caller is sent explicitely as this function is likely to be called by getvar (or other functions) on this object, so by the time can_read is called the caller is wrong.\nTo test general readability of the object, call this.can_read(\"\", caller).\nNote that the return value is guaranteed to be either 1 or 0.\n \nSee also: can_write().\n \n", "keys()" => " \nFunction:  #1.keys()\n \nSyntax:    keys( <var name> )\n \nReturns the keys of the mapping referenced by the string <var name> on the given object.\n \n", ":" => "Command:    pose <message>\n            : <message>\n\nDisplays <message> to everyone in the room, prepended with your name.\nFor example, if your name is \"Joe\" and you type \":smiles.\", everyone\nin the room would see \"Joe smiles.\"\n\nSee also:   say, whisper, page, \", :\n", ";" => "Command:    eval <code>\n                 ; <code>\n\nEvaluate one or more statements of COOL code.  The return value is displayed.\nEg.,\n\n    ;return \"abc\" + \"def\";\n    --> \"abcdef\"\n\nSee also:   @program, compile()\n", "program" => "program()", "checkmem" => "checkmem()", "rwho" => "Command:    rwho\n\nShow who is on all the coolmuds in the coolnet.  Each of the servers\nis listed, together with a list of players who is on each one.\n\nSee also:   who, wizards\n", "@ps" => "Command:    @ps [ -a ]\n\nShow information about tasks running on the mud.  By default, only\ntasks running under your control are displayed.  With the -a option,\nall tasks are displayed.\n\nSee also:   @kill\n", "object commands" => " \nGeneral Object Commands\n=======================\n \nThese commands will work on most object.  @rename, in particular, works on every object in the database except the system object (#0).\n \n@rename    @describe     look/examine    get/take   drop/throw\n \nContainer Commands\n==================\n \nput/place/insert       look       get/remove/take\n \nFurniture Commands\n==================\n \nsit        lie        stand\nNot all of these commands will work on all pieces of furniture.\n \n \n", "@verbs" => "Command:    @verbs <object>\n\nShow all the verbs on <object>, and the methods called.\n\nSee also:   @show, @methods, @verb, @rmverb\n", "methods" => "methods()", "fixlist" => "#!/usr/bin/perl\n\n$count = 0;\n\nwhile(<>) {\n  chop;\n  printf \"%-15s\", $_;\n  $count++;\n  if (($count % 5) == 0) {\n    print \"", "@cpmethod" => " \nCommand:    @cpmethod <obj1>.<m1> to <obj2>.<m2>\n \nCopies the method <m1> on object <obj1> to the method <m2> on object <obj2>.\n \nSee also: @cpvar.\n \n", "typeof" => "typeof()", "disconnect()" => "Function:  disconnect()\n\nSyntax:    disconnect()\n\n\nDisconnect the current object.\n\n", "sleep()" => "Function:  sleep()\n\nSyntax:    sleep( _num_ )\n\n\nPause for _num_ seconds\n\n", "@link" => "Command:    @link <exit> to <room>\n\nLink the exit named <exit> to the room <room> (usually specified by object #).\n\n\nSee also:   @open, @dig, @create, @clone, @destroy\n", "match_full" => "match_full()", "listassign" => "listassign()", "@who" => "Command:    who\n          @who\n\nShow who is online, showing how long they've been connected to the mud\n(\"on for\") and how long since they last typed a command (\"idle\").\n\nSee also:   rwho, wizards\n", "@verb" => " \nCommand:    @verb <verb> <method> on <object>\n            @verb <verb> <prepositions> <method> on <object>\n \nFirst form: Add a new verb named <verb> to <object>, which will call <method> when triggered.\nSecond form:  As above, except the new verb will accept the given list of prepositions as syntactical markers (i.e. ways to tell to direct object from the indirect object).  To give a list of prepositions, separate them with spaces.  To use a preposition that consists of more than one word, replace spaces with _'s.   For example, if you have a box with the method take_cmd and you want to be able to 'take <thing> out of/from box', you would use '@verb take out_of from take_cmd on box'.\nNB: <verb> above can actually be a list of verb names, separated by /'s.  In the example above, if you also wanted to get <thing> out of box, you could use '@verb get/take out_of from take_cmd on box'.\n \nSee also:   @rmverb, @verbs\n\n", "Programmer Commands" => " \nProgrammer Commands\n===================\n \nThese commands are available to all programmers.\n \neval            @program        @ps      @kill           @verb\n@rmverb         @rmmethod       @rmvar   ;               @cpmethod\n\n", "aliases" => " \nAliases\n=======\n \nThis help file describes the rules for alias matching and how to set up aliases.\nCurrently, aliasing only works for players and exits.\n \nFirst, the server checks all appropriate items it can find (in the room or on the whole server, as appropriate), and tries to match the argument against a full word in one of the aliases or the thing's name.\nIf this fails, it goes through them all again, this time for each alias, if the alias is more than one word, any substring can be matched, otherwise the whole word must be matched.  After the aliases, the thing's name is checked, with any substring matching.\nNote that all of these searches are first-come, first-served.\n \n", "listappend" => "listappend()", "get" => " \nCommand:    get <object>\n            take <object>\n \nPick up an object, and put it in your inventory.  Note that not all\nobjects can be picked up.  \"get all\" will attempt to pick up everything\n(and everyone!) in the room.\nA second form of get and take, for containers, works just like remove.\n \nSee also: drop, remove\n\n", "listinsert" => "listinsert()", "@rmparent" => "Command:    @rmparent <parent> from <object>\n\nRemove <parent> from the parents lists of <object>.  <object> retains\nany variables inherited from <parent>.\n\nSee also:   @addparent, @mutate\n", "page" => "Command:    page <player>\n            page <player> with <message>\n\nSends <message> to <player>, who does not have to be in the same room.\nIf no message is given, the player is informed that you are looking\nfor them and is given your current location.\n\nSee also:   say, whisper, pose, \", :\n", "rename" => " \nCommand:    rename <newname>\n \nChanges the name of the variable or method currently being edited.  Note that editing something and then renaming and saving is an effective way of copying variables or methods on a particular object.\n \nSee also: editing, editing commands\n\n", "ps()" => "Function:  ps()\n\nSyntax:    ps()\n\n\nGet a list of all active threads on the MUD.  Returns a list of lists,\nin which each element represents a thread in an 11-element list of the\nform:\n\n\n{ msgid, age, ticks, player, this, on, caller, args, methodname,\nblocked_on, timer }\n\n\n", "tostr()" => "Function:  tostr()\n\nSyntax:    tostr( _var_ )\n\n\nConvert a string, number, object, list or error type into a string\nvalue.  Strings are converted by enclosing them in doublequotes, and\nescaping any control chars with a backslash (, , etc).  Numbers and\nobject ID's are simply printed.  Lists are evaluated recursively,\nprinting '{', followed by the list elements, separated by commas, and\nthen '}'.  Errors are converted into a string representing the error\nidentifier (E_TYPE becomes \"E_TYPE\").\n\n", "rm_verb()" => "Function:  rm_verb()\n\nSyntax:    rm_verb( _str_ )\n\n\nRemove the first verb named _str_ from the current object.  The\nargument may also be a string representing the number indexing the verb\nto be removed (indexed from 0).  eg.,\nwould remove the 4th verb on the current object.\n\n", "dump()" => "Function:  dump()\n\nSyntax:    dump()\n\n\nDump the database.\n\n", "toobj" => "toobj()", "@adddark" => " \nCommand:    @adddark <variable> on <object>\n \nIf <object> is set public, <variable> will be added to the list of variables that will not be world-readable regardless.\n \nSee also:   @addlight, @rmlight, @rmdark, @addwriteok, @rmwriteok, @publish\n \n", "@shutdown" => "Command:    @shutdown\n\nShut down the mud.\n\nSee also:   @force\n", "vars" => "vars()", "@cachestats" => "Command:    @cachestats/@cs\n\nShow object allocation and cache statistics for the mud.\n\nSee also:   @mem, @visitors\n", "functions" => " \nFunctions\n=========\n \nbuiltin functions/functions1:    A list of all the server provided functions.\nroot functions/functions2:       A list of all the root object's functions.\n \n", "quit" => "quit()", "list" => " \nCommand:    list [noline]\n \nLists the current editing buffer.  If a second argument is given (any second argument, actually), the listing is done without presenting line numbers.\n \nSee also: editing, editing commands\n\n", "@set" => "Command:    @set <object>.<variable> to <value>\n\nSet the variable <property> to <value>.  You must own <object>.\n(Ed note:  this syntax is grotty, since object.foo really means the\nmethod foo, not the variable foo).  If <property> doesn't exist on\n<object>, it will be created as a string property.\n\nSee also:   @show\n", "commands_old" => "player commands:\ndrop/throw      get/take        help home            inventory\nlook/examine    news            page @password/password\npose            quit/@quit      rwho            say who/@who\nwhisper         wizards         : \"\nobject-specific commands (may not work on all objects):\n@describe look/examine    put             remove\nbuilder commands:\n@addowner @addparent      @clone          @create         @decompile\n@destroy @dig            @find           @link           @list\n@open @methods        @mutate         @publish        @unpublish\n@rmparent @rmowner        @set            @show           @spew\n@teleport @verbs\nprogrammer commmands:\neval            @program        @ps @kill           @verb\n@rmverb         @rmmethod       @rmvar ;\n\n\n\n\n", "home" => "Command:    home\n\nSend yourself home.  There's no place like home..\n\nSee also:   @home\n", "save" => "\nCommand:    save\n \nSaves the current editing session without resetting it.\n \nSee also: editing, editing commands\n \n", "explode" => "explode()", "playing" => " \nNew Player Information\n======================\n \nHi!  Welcome to CoolMUD, the next generation of MUD servers.\n \nThis help file is here to help you get familiar with the basic commands you'll need to interact with other players and the mud environment.\nThe commands discussed here are mostly listed in the player commands/commands1 help file.  Note that when I specify several things separated by /'s, that means any of them will work, so you could get the aforementioned information by typing 'help player commands' or 'help commands1'.  You may also want to look at 'help commands' to see what is available to you.\n \nThe following list of help topics, which probably should be read in\norder, should give you the tools you need to explore the MUD.\n \nsetup:          What to do to set up yourself for playing.\ntalking:        How to talk to others on the MUD.\ncommunicating:  Other ways of interacting with people besides talking.\neploring:       How to move and look at thing.\nthings:         How to deal with things you find on the MUD.\nplaying2:       Other sundry commands that you can use.\n\n", "compile()" => "Function:  compile()\n\nSyntax:    compile( [ _obj_ , _method_ ], _str_ )\n\nCompile _str_ into an object or method\n\n", "say" => "Command:    say <message>\n         \"<message>\n\nSays a message to everyone in the room.  You can also use the short-form\nversion, \".\n\nSee also:   pose, whisper, page, :\n", "checkmem()" => "Function:  checkmem()\n\nSyntax:    checkmem()\n\n\nReturns a string showing the amount of memory dynamically allocated,\nand how many chunks it was allocated in.  If the server was not\ncompiled with -DCHECKMEM, this function will return ``Memory checking\ndisabled.''\n\n", "l" => "Command:    look\n look <object>\n            examine <object>\n\nLooks around the room (first form), or examines a particular object\n(second form).  Shows you the name, description, and contents.\n\nSee also:   @describe\n", "permissions functions" => " \nPermissions Functions\n=====================\n \nThe primary two functions for permissions testing are can_read() and can_write(), both of which have their own help pages.\nIn particular, #1.getvar() and #1.setvar() are just basically wrappers for can_read and can_write, respectively.\n \n", "permissions" => " \nPermissions\n===========\n \nAs of this writing, this is a description of a system under development, so the actual code may not be consistent with this description.\n \npermissions overview:  An overview of the design of the permissions system.\npermissions reading:   A discussion of the default permissions for variable reading.\npermissions writing:   A discussion of the default permissions for variable writing.\npermissions functions: A discussions of the functions that implement the basic permissions system and how to use them.\n \npermissions commands:  A list of player commands for handling permissions.\n", "@addlight" => " \nCommand:    @addlight <variable> on <object>\n \nIf <object> is set to non-public, <variable> will be added to the list of variables that will be world-readable regardless.\n \nSee also:   @rmlight, @adddark, @rmdark, @addwriteok, @rmwriteok, @publish\n \n", "@boot" => "Command:    @boot <player>\n\nDisconect <player> from the mud (give them the boot!).\n\nSee also:   @force\n", "@rmlight" => " \nCommand:    @rmlight <variable> on <object>\n \nIf <object> is set to non-public, <variable> will be removed from the list of variables that will be world-readable regardless.\n \nSee also:   @addlight, @adddark, @rmdark, @addwriteok, @rmwriteok, @publish\n \n", "time" => "time()", "@dig" => "Command:    @dig <name>\n\nCreate a new room, with the name <name>.  Equivalent to:\n\n                @clone $room named <name>\n\nSee also:   @create, @clone, @open, @destroy\n", "padc()" => " \nFunction:  #1.padc()\n \nSyntax:    padc( str, length, [padchar] )\n \nPads str into the appropriate length using padchar, with str centered in the resulting string.  In case of an even/odd conflict, an extra padchar is put at the end of the resulting string.\nPadchar defaults to \" \".\n \nSee also: pad, padl.\n", "servername()" => "Function:  servername()\n\nSyntax:    servername( _obj_ )\n\n\nReturns a string representing the server name part of _obj_.\n\n", "psub()" => "Function:  psub()\n\nSyntax:    psub( _str_ )\n\n\nThis function substitutes the value of the local (method) variable\n\"foo\" for each instance of \"%foo\" or \"%foo%\" in _str_.  Example:\n\n\nfoo = \"system\"; n = #0; echo(psub(\"%n is the %foo object.\"));\n\nwould result in the output \"#0 is the system object\".\n\n", "match()" => " \nFunction:  match()\n \nSyntax:    match( <str>, <template>, [<sep>] )\n \nThis function matches _str_ to _template_.  _str_ should be a 1-word\nstring which is compared against each word in _template_.  If _str_\nmatches a substring of any word in _template_, 1 is returned, otherwise\n0 is returned.  The optional third argument is the separator to use\nwhen matching (default is a blank).\nNote that match is case insensitive (i.e. lower case and upper case are treated the same way).  Also, I just fixed the server so that it does true substring matching: before, if you did match( \"aabb\", \"aa\"), that would match but match( \"aabb\", \"bb\" ) wouldn't (it only matched substrings starting at the beginning of words).\n\n", "typeof()" => "Function:  typeof()\n\nSyntax:    typeof( _var_ )\n\n\nReturns a number representing the type of _var_.  This value may be\nchecked against the pre-defined constants NUM, OBJ, STR, LIST and ERR.\n\n", "@destroy" => "Command:    @destroy <object>\n\nDestroy an existing object.\n\nSee also:   @create, @clone, @mutate\n", "unlock" => "unlock()", "go" => " \nCommand:    go <exit>\n \nSends you through the named exit.  Can be done more easily simply by typing the exit's name, and so isn't used much.\n \n", "@methods" => "Command:    @methods <object>\n\nList all the methods on <object>, sorted alphabetically.\n\nSee also:   @show, @verbs, @rmmethod, @list, @decompile\n", "player commands" => " \nPlayer Commands\n===============\n \nThese commands are available to all players.\n \ndrop/throw      get/take        help      home      inventory\nlook/examine    news            page      @password pose\n@quit           rwho            say       @who      whisper\nwizards         :               \"         @describe @rename\n@home           @gender         exits     uptime    give\ngo              @aliases        @cpvar\n\n", "verbs" => "verbs()", "perms" => "", "builder commands" => " \nBuilder Commands\n================\n \nThese commands are available to all builders.\n \n@addowner  @addparent      @clone          @create         @decompile\n@destroy   @dig            @find           @link           @list\n@open      @methods        @mutate         @publish        @unpublish\n@rmparent  @rmowner        @set            @show           @spew\n@teleport  @verbs\n\n", "servers" => "servers()", "pad" => "pad()", "implode" => "implode()", "@publish" => "Command:    @publish <object>\n\nSet <object> public, so that anyone may @show, @methods, @list, @clone\netc the object.  Basically allows \"world read permission\" on the object.\nYou must own <object>.\n\nSee also:   @unpublish, @show, @list, @methods, @verbs, @clone\n", "spew_method()" => "Function:  spew_method()\n\nSyntax:    spew_method( _str_ )\n\n\nReturns a string containing the internal stack-machine code for method\n_str_.  This code is pretty unintelligible unless your brain works in\nRPN.  Even then, some instructions are hard to figure out, and there's\nnot much point.  Only for the habitually curious.\n\n", "rm_method()" => "Function:  rm_method()\n\nSyntax:    rm_method( _str_ )\n\n\nRemove _str_ from the current object.  Note that has special provision\nto allow a method to remove itself and continue executing.  It won't be\nactually destroyed until after the method finishes.\n\n", "tonum" => "tonum()", "random" => "random()", "@open" => "Command:    @open           <exit>  [ to <room> ]\n\nOpen an exit, and optionally link it to <room>.\n\nSee also:   @dig, @link, @create, @clone, @destroy\n", "who" => "Command:    who\n           @who\n\nShow who is online, showing how long they've been connected to the mud\n(\"on for\") and how long since they last typed a command (\"idle\").\n\nSee also:   rwho, wizards\n", "functions1" => "builtin functions", "commands1" => "player commands", "commands2" => "builder commands", "builtin functions" => " \nBuiltin Functions\n=================\n \nadd_verb()     cache_stats()  checkmem()     chparents()    clone()        \ncompile()      crypt()        ctime()        decompile()    destroy()      \ndump()         echo()         echo_file()    explode()      find_method()\ngetvar()       hasparent()    kill()         lengthof()     list_method()\nlistappend()   listassign()   listdelete()   listinsert()   lock()\nmatch()        match_full()   methods()      objsize()      pad()          \nprogram()      ps()           psub()         quit()         random()\nrm_method()    rm_var()       rm_verb()      servername()   serverof()\nservers()      setadd()       setremove()    setvar()       shutdown()\nsleep()        spew_method()  strsub()       time()         toerr()\ntonum()        toobj()        tostr()        typeof()       unlock()       \nvars()         verbs()        writelog()     \n \n", "commands3" => "programmer commands", "hasparent" => "hasparent()", "spew_method" => "spew_method()", "commands4" => "editing commands", "@rename" => " \nCommand:    @rename <thing> to <name>\n \nChanges the name of <thing>, be it room, thing or player, to <name>.\n\nSee also: @gender, @describe, @home\n \n", "@describe" => "Command:    @describe <object> as <description>\n\nGive a text description to an object, player or room.  This description\nwill be displayed when the object is examined.\n\nSee also:   look, examine\n", "setremove" => "setremove()", "delete" => " \nCommand:    delete <line>\n \nDeletes the given line in the current editing buffer.\n \nSee also: editing, editing commands\n\n", "commands5" => "object commands", "commands6" => "permissions commands", "throw" => "drop", "verbs()" => "Function:  verbs()\n\nSyntax:    verbs()\n\n\nReturn a list of verbs on the current object.  Each element of the list\nis in turn a 3-element list, consisting of 3 strings:  the verb name,\nthe preposition, and the method to call.\n\n", "ctime()" => "Function:  ctime()\n\nSyntax:    ctime( [ _num_  ] )\n\n\nReturns a string representing the integer _num_ as an English date, or\nthe current time if no argument is given.\n\n", "intro" => " \nHello!  Welcome to Chaos.  The help here is undergoing some fairly radical\nalteration, so please let Tzeentch know if you notice anything missing or have\na suggestion for a new help topic.\n \nChaos runs on COOLMUD v2.2.2-alpha2, a distributed, multi-user, object-oriented, programmable worldbuilding environment.  Help is available on the following topics:\n \nhelp intro         - this file\nhelp commands      - a list of commands which the mud understands\nhelp functions     - a list of all the COOL built-in function\nhelp topics        - a list of general help topics\n \nIndividual objects may also have their own help functions.\n\n", "@rmverb" => "Command:    @rmverb         <verb> on <object>\n\nRemove <verb> from <object>.  You must own <object>.\n\nSee also:   @verb, @verbs\n", "@quit" => "Command:    quit\n        @quit\n\nLogout and disconnect from the MUD.\n\nSee also:\n", "append" => "\nCommand:    append <string>\n \nAppends a string to the current editing session.  <string> should not be delimited by quotes unless you want them to be preserved.\n \nSee also: editing, editing commands\n\n", "@dewizard" => "Command:    @dewizard <player>\n\nRevoke wizardly powers for <player>.  You must be a wizard.  You cannot\ndewizard your self.\n\nSee also:   @wizard\n", "@list" => "Command:    @list <method> on <object>\n\nList the source for the method named <method> on the given <object>.\n\nSee also: @decompile, @methods, @rmmethod, @spew\n", "@wizard" => "Command:    @wizard <player>\n\nGive <player> wizardly powers.  You must be a wizard.\n\nSee also:   @dewizard\n", "edit_method" => " \nCommand:    edit_method <name> on <obj>\n \nEdits the method <name> on the object <obj>.\n \nSee also: editing, editing commands\n\n", "@unsafe" => " \nCommand:    @unsafe <object>\n \nIf an object is set unsafe, its location has write permissions on it.  This is used to allow to do wierd things such as randomly teleport people in their areas or have wandering puppets that steal stuff from people.\n \nSee also:   @safe, @publish, @unpublish, permissions commands\n \n", "@home" => " \nCommand:    @home <where>\n \nSets your home to the named location.\n \nSee also: @gender, @describe, @rename\n \n", "listdelete" => "listdelete()", "@clone" => "Command:    @clone <object> [ named <name> ]\n\nCreate a child of <object>, optionally with the name <name>.  The newly-\ncreated object is passed the \"init\" message, with the argument <name>.\n\nSee also:   @destroy, @create, @dig, @open, @mutate\n", "ctime" => "ctime()", "serverof" => "serverof()", "time()" => "Function:  time()\n\nSyntax:    time()\n\n\nReturns a numeric value representing the current date and time, given\nin seconds since 12:00 GMT, January 1, 1970.\n\n", "cache_stats()" => "Function:  cache_stats()\n\nSyntax:    cache_stats()\n\n\nReturns a string with embedded newlines containing the current\nstatistics of the object-paging cache.  Currently the output looks like\nthis:\n\n\n\n", "kill()" => "Function:  kill()\n\nSyntax:    kill( _num_ )\n\n\nTerminate thread _num_\n\n", "quit()" => "Command:    quit\n       @quit\n\nLogout and disconnect from the MUD.\n\nSee also:\n", "echo" => "echo()", "setup" => " \nSetup\n=====\n \nThe following are things you can or should do to set your character up for playing.\n \n@describe: You should give your character a description, so that other people will see something interesting when they look at you.  For example, you might type, '@describe me as A tall, blond geek with glasses.'.\n@gender:  You'll want to let people know your gender.  If it's male, type '@gender male', '@gender female' for female, and '@gender <something-that-doesn't-start-with-m-or-f>' if you want to be an 'it'.\n@rename: You may wish to change your name from the one you picked when you first created your character.  Type '@rename me to <newname>', replacing <newname> with the name you want (don't type in the ' marks, of course).\n@home:  The 'home' command instantly teleports you to your home.  You may decide that you wish your home to be different than the one set for you when you first start on the mud.  To change it, go to the place where you want your home to by and type '@home here'.  Be sure to ask if it's not your room!\n \n", "add_verb" => "add_verb()", "@rmvar" => "Command:    @rmvar <variable> on <object>\n\nRemove <variable> from <object>.  You must own <object>.\n\nSee also:   @set, @show\n", "permissions commands" => " \nPermissions Commands\n====================\n \n@addlight    @rmlight     @adddark    @rmdark      @addwriteok    @rmwriteok\n@safe        @unsafe\n \n", "@visitors" => "Command:    @visitors\n\nShow all remote objects which are inside local objects.\n\nSee also:   @mem, @cachestats\n", "insert" => "\nCommand:    insert <string> at <line>\n \nInserts <string> into the current editing buffer above <line>.  If <line> is greater than the number of lines in the editing buffer, appends instead.  <string> can be delimited by quotes, and should if the word 'at' is present.\n \nSee also: editing, editing commands\n\n", "@safe" => " \nCommand:    @safe <object>\n \nIf an object it set safe, then it's location does not have write permissions on it.\n \nSee also:   @unsafe, @publish, @unpublish, permissions commands\n \n", "exploring" => " \nExploring\n=========\n \ngo:  To go through a room's exit, to wherever it may happen to lead, type 'go <exit>', replacing <exit> with the exit name.  Go isn't used much, however, as you can just type '<exit>' for the same effect.\nexits:  To get a list of exits in the room you are in, just type exits.\nlook:  To look around the room you are in, just type 'look'.  This happens automatically when you enter a room.  To look at a particular object, person or exit, type 'look <name>', where <name> is the name of the thing you want to look at.\n \n", "Editing" => "editing", "match" => "match()", "destroy" => "destroy()", "find_method()" => "Function:  find_method()\n\nSyntax:    find_method( _str_ )\n\n\nLocates the method named _str_ on the current object, if one exists.\nThis activates the same method-searching algorithm as used when\nactually sending an object a message.  Returns the object ID of the\nobject defining the method, or #-1 if none is found.  (This was useful\nin building the @list command, for instance).\n\n", "implode()" => " \nFunction:  #1.implode()\n \nSyntax:    implode( <list> [, <seperator>] )\n \nDoes the opposite of implode: takes <list> and places <seperator> between each element in list, returning the resulting string.  <seperator> defaults to \" \".\n \nSee also: implode().\n \n", "vars()" => "Function:  vars()\n\nSyntax:    vars()\n\n\nReturn a list of variables (properties) on the current object.  Each\nelement of the list is a string containing the name of the variable.\n\n", "@mem" => "Command:    @mem\n\nShow memory usage of the mud.\n\nSee also:   @cachestats, @visitors\n", "@cpvar" => " \nCommand:    @cpvar <obj1>.<v1> to <obj2>.<v2>\n \nCopies the variable <v1> on object <obj1> to the variable <v2> on object <obj2>.\n \nSee also: @cpmethod.\n \n", "edit_var" => " \nCommand:    edit_var <variable> on <object>\n            edit_var <mapping> <entry> on <object>\n \nStarts an editing session on the given variable or mapping entry.\n \nSee also: editing, editing commands\n\n", "put" => "Command:    put <object> in <container>\n\nPut an object inside a container.\n\nSee also:   get, drop, remove\n", "find_method" => "find_method()", "decompile" => "decompile()", "uptime" => " \nCommand:    uptime\n \nLists how long the server has been up.\n \n", "servername" => "servername()", "inv" => "Command:    inv\n           inventory\n\nShows the contents of your inventory.\n\nSee also:   look\n", "permissions reading" => " \nReading Permissions\n===================\n \nFor reading, things are fairly easy.  Clearly anyone with permission to write a variable should also be able to read it.  If an object has publish set to 1, everything not in the dark_vars variable (which is a list) is readable.  If an object has publish set to 0, only vars in the light_vars list are readable.\n \nSee also: permissions\n \n", "methods()" => "Function:  methods()\n\nSyntax:    methods()\n\n\nReturn a list of methods on the current object.  Each element of the\nlist is a string containing the name of the method.\n\n", "serverof()" => "Function:  serverof()\n\nSyntax:    serverof( _obj_ )\n\n\nReturns a number representing the server ID of _obj_.  This ID is used\ninternally by the server, and has no meaning except that ID zero is the\nlocal MUD.  So the statement\n\nif (!serverof(thingy))\n ...\nendif\n\nwould evaluate to true if thingy is a local object.\n\n", "pad()" => "Function:  pad()\n\nSyntax:    pad( _str_ , _length_ [, _padchar_ ])\n\n\nPad/truncate a string.\n\n", "setvar()" => "Function:  setvar()\n\nSyntax:    setvar( _str_ , _value_ )\n\n\nSets the value of the variable named _str_ on the current object to\n_value_.  Again, this would usually be accomplished with assignment\noperator, but in certain cases (eg., the name of the variable must\ncreated at run-time with an expression), this function must be used.\nIf the variable does not exist, it is created.  Note that the type of\nthe new variable is determined by _value_, and may not later be\nchanged.  Example:\n\nsetvar (\"abc\" + \"def\", 100);\n\nwould set the value of the variable named abcdef on the current object\nto the numeric value 100.  If abcdef did not exist, it would be\ncreated.\n\n", "blank" => " \nCommand:    blank [<num>]\n \nInserts a line containing a single space at line <num>, or, if <num> is not given, at the and of the editing buffer.\n \nSee also: editing commands, append, insert\n \n", "look" => " \nCommand:    look\n            look/examine <object>\n            look in <object>\n \nLooks around the room (first form), or examines a particular object\n(second form).  Shows you the name, description, and contents.\nThe third form is used to look in container objects.\n \nSee also:   @describe\n\n", "funclist2" => "add_verb()\ncache_stats()\ncheckmem()\nchparents()\nclone()\ncompile()\ncrypt()\nctime()\ndecompile()\ndestroy()\ndump()\necho()\necho_file()\nexplode()\nfind_method()\ngetvar()\nhasparent()\nkill()\nlengthof()\nlistdelete()\nlock()\nmatch()\nmatch_full()\nmethods()\nobjsize()\npad()\nprogram()\nps()\npsub()\nquit()\nrandom()\nrm_method()\nrm_var()\nrm_verb()\nservername()\nserverof()\nservers()\nsetadd()\nsetremove()\nsetvar()\nshutdown()\nsleep()\nspew_method()\nstrsub()\ntime()\ntoerr()\ntonum()\ntoobj()\ntostr()\ntypeof()\nunlock()\nvars()\nverbs()\nwritelog()\n", "rm_method" => "rm_method()", "crypt" => "crypt()", "@force" => "Command:    @force <player> to <command>\n\nForce <player> to execute <command>.\n\nSee also:   @boot\n", "take" => "get", "@create" => "@create <name>\nCreate a Generic Thing, with the name <name>.  Equivalent to:\n             @clone $thing named <name>\n\nSee also:   @destroy, @clone, @mutate, @dig, @open\n", "can_write" => "Mapping not found\n \nFunction:  #1.can_write\nSyntax:    <obj1>.can_write(<obj2>, <var_name>, <caller> );", "editing" => " \nGetting Started\n===============\n \nVariables: To start editing a variable, use the edit var command.  For example, to edit your own description, type 'edit_var desc on me'.\nMethods: Only programmers can edit methods.  To start editing a method, use the edit_method command.  For example, to edit your own desc method, perhaps causing different people to see different things when they look at you, type 'edit_method desc on me'.\n \nCommands\n========\n \nOther than the above two commands, all of the editing procedure works the same way whether one is working on methods or variables.\nlist:       Used to list the current editing buffer.  If a second argument is given (any second argument, I use \"n\"), the buffer is listed with no line numbers.\ninsert:     This command inserts a new line above a given line number in the current editing buffer.  For example, 'insert foo at 1' inserts a new line containing the text \"foo\" above the first line, becoming the new line 1.\nblank:      Inserts a blank line at the end of the input or at the given line.  It is recommended that if you want a truly blank line at the end of your input (as opposed to the singe space that blank inserts) you do a single append before you save.\nappend:     Slightly simpler form than insert, for appending lines to the end of the editing buffer.\ndelete:     Deletes the given line number from the editing buffer.\nsave:       Saves the current contents of the editing buffer under the current name.\nrename:     Renames the place where the current editing buffer will be saved.  Same format as edit_var/edit_method.\nclear_edit: Clears all of the editing information.  Since this information is stored on your character object, you probably want to clear it before doing a @show me if you're editing a large buffer.\nreplace:    Replaces a given line in the editing buffer with a new string.\n \nSee Also: editing commands\n\n", "@spew" => "Command:    @spew           <method> on <object>\n\nShow the internal stack machine code for the method <method> on <object>.\nReally only useful for trivia junkies.\n\nSee also:   @list, @decompile, @methods, @rmmethod\n", "permissions overview" => " \nPermissions Overview\n====================\n \nAs of this writing, this is a description of a system under development, so the actual code may not be consistent with this description.\nBasically, there are two things of interest to a method when it tests whether it has permission to do something: caller and player.  Caller is the object number of the object that actually called the current method (although it should be noted that pass does not modify caller) and player is the object number of the player that started the call chain.\nPossible relevant tests include whether one of the above (player or caller) is an owner, a wizard, #0, a parent or the current location of the relevant object.\nObviously, the owner of an object can do whatever ey wants, as can a wizard.\nIt is nescessary to allow #0 to do arbitrary things as well, for system maintenace purposes.  In this cases, caller would be tested although, in general, this test is irrelevant as a test of player in (#0.wizards) should do the same thing.  Someone who is not a wizard managing to get #0 to run a potentially destructive system maintenance routine with wizard permissions is a Bad Thing (tm), so this check is not used in the standard permission checking calls.\nThe exception to this is that if #0 cannot read certain attributes at log in, it cannot log people in, so it is given global read permissions.\nBeyond this, things get a little more muddy.  We'll restrict the discussion to variable reading and writing, as anything else (cloning, destroying, etc.) are going to be handled specially if the owner/wizard test fails.\n \nSee also: permissions.\n \n", "permissions writing" => " \nWriting Permissions\n===================\n \nFor writing, as mentioned before, owners and wizards are automatically OK.  Note that this is a player test, not caller test.  The old code tested whether the caller was an owner or wizard, and you wouldn't believe the trouble this caused.\nThe current location should recieve special permissions, for the simple reason that area owners should be allowed to do wierd, strange things to you in their area.  On the other hand, the destructive potential of this ability should be minimized.\nTherefore, the current location is normally a writer for player objects only, unless the object has safe set to 1.  It is recommended that builders of areas that use this ability test the safe variable on entrances to their area, possibly restricting access if the variable isn't set, and in either case priting a warning is almost certainly a good idea.  Note that location is a caller test, obviously.\nFinally, a variable in the write_ok list on an object can be written by anybody.\n \nSee also permissions.\n \n", "crypt()" => "Function:  crypt()\n\nSyntax:    crypt( _str_ [ , _salt_ ] )\n\n\nEncrypt a string.  This function uses UNIX's crypt() routine to encrypt\na string.  Useful for password checking, etc.\n\n", "strsub()" => " \nFunction:  strsub()\n \nSyntax:    strsub( <string>, <from>, <to> )\n \nReplaces all instances of the string <from> in <string> with the string <to>.\n\n", "match_full()" => " \nFunction:  match_full()\n \nSyntax:    match_full( <str>, <template>, [<sep>] )\n \nThis function matches _str_ to _template_ like match() except that <str>\nmust match an entire word in _template_, not just a substring.\n\nNote that the mach is case insensitive (i.e. lower case and upper case are treated the same way).\n\n", "shutdown()" => "Function:  shutdown()\n\nSyntax:    shutdown()\n\n\nShut down the MUD.  The database is written, remote servers\ndisconnected, and the  process terminates.\n\n", "hasparent()" => "Function:  hasparent()\n\nSyntax:    hasparent( _obj_ )\n\n\nReturns a positive value if the current object has _obj_ as a parent.\nThis function looks recursively on all parents of the current object,\nso it will return 1 if the object has _obj_ as a parent anywhere in its\ninheritance tree, and 0 otherwise.\n\n", "clone()" => "Function:  clone()\n\nSyntax:    clone()\n\n\nClone the current object.  A new object is created, whose parent is the\ncurrent object.  The new object's init method is called.  Return\nvalue:  The object ID of the new object.  If the current object no\nlonger exists (ie., has been destroyed), #-1 is returned.\n\n", "program()" => "Function:  program()\n\nSyntax:    program([ _obj_ , _method_  ])\n\n\nEnter programming mode.  This sets a flag on the player's descriptor\nsuch that all input from the player is diverted to a temporary file.\nWhen the player enters '.', the file is compiled, and then erased.\nThere can either be no arguments, in which case the server expects a\nseries of objects, or two arguments, which should be the object and\nmethod to program.  In either case, the server currently uses a\nbuilt-in set of permissions checks to determine whether the player may\nreprogram that object: either they must be in the object's owners list,\nor in SYS_OBJ.wizards.\n\n", "listinsert()" => "Function:  listinsert()\n\nSyntax:    listinsert( _list_ , _value_ [ ,  _pos_ ] )\n\n\nInsert _value_ into _list_.  By default, the new element is inserted at\nthe beginning of the list.  If the optional numeric argument _pos_ is\ngiven, the element is inserted before position _pos_.  Returns the new\nlist.\n\n", "@rmdark" => " \nCommand:    @rmdark <variable> on <object>\n \nIf <object> is set public, <variable> will be removed from the list of variables that will not be world-readable regardless.\n \nSee also:   @addlight, @rmlight, @adddark, @addwriteok, @rmwriteok, @publish\n \n", "dump" => "dump()", "@addowner" => "Command:    @addowner <player> to <object>\n\nGive <player> ownership of <object>.  You must be an owner of <object>.\n\nSee also:   @rmowner\n", "@gender" => " \nCommand:    @gender <string>\n \nSets your gender to the given string.  Anything that starts with 'm' will cause you to be reffered to by masuline pronouns, 'f' gets feminine, and anything alse gets 'it'.\n \nSee also: @home, @describe, @rename\n \n", "setvar" => "setvar()", "@rmowner" => "Command:    @rmowner <player> from <object>\n\nRemove ownership of <object> by <player>.  You must own <object>.\nNote that once the last owner has been removed from an object,\nit may be manipulated/destroyed by anyone.\n\nSee also:   @addowner\n", "sit" => " \nCommand:    sit <furniture>\n            sit on <furniture>\n            sit down on <furniture>\n \nSit down on the named piece of furniture.\n \nSee also: lie, stand\n \n", "clone" => "clone()", "@show" => "Command:    @show <object>\n\nShow the the parents list, and the values of all the variables on\n<object>.  Note that any variables which are inherited from parents\nwill not be shown directly.  You must own <object>, or it must be\npublic.\n\nSee also:   @verbs @methods, @set\n", "@unpublish" => "Command:    @unpublish <object>\n\nSet <object> non-public, so that only the owner(s) may @show, @methods,\n@list, etc it.  You must own <object>.\n\nSee also:   @publish, @show, @list, @methods, @verbs, @clone\n", "explode()" => "Function:  explode()\n\nSyntax:    explode( _str_  [, _sep_  ])\n\n\nBreak _str_ into a list of strings.  By default, explode breaks on\nspaces; the optional second argument is the character to break on.\n\n", "listdelete()" => "Function:  listdelete()\n\nSyntax:    listdelete( _list_ , _pos_ )\n\n\nDeletes the element at position _pos_ in _list_.  Returns the new\nlist.\n\n", "destroy()" => "Function:  destroy()\n\nSyntax:    destroy()\n\n\nDestroy the current object.  The object itself is responsible for\ncleaning up any references to itself prior to this call.  This might\ninclude removing any contained objects, re-parenting or destroying any\ninstances of it, etc.\n\n", "lock()" => "Function:  lock()\n\nSyntax:    lock( _str_ )\n\n\nThis function is used to lock an object, to prevent another execution\nthread from modifying the object before the current thread is finished\nwith it (see ``locking'').  The argument _str_ is the name of the lock\nto place on the object.  Locks placed by an execution thread remain in\neffect until a corresponding unlock() call, or until the method\nterminates.\n\n", "listappend()" => "Function:  listappend()\n\nSyntax:    listappend( _list_ , _value_ [ ,  _pos_ ] )\n\n\nAppends _value_ to the end of _list_, or after position _pos_, if\ngiven.  Returns the new list.\n\n", "add_verb()" => "Function:  add_verb()\n\nSyntax:    add_verb( _verb_ , _prep_ , _method_ )\n\n\nAdd a verb to the current object.  _verb_ is the name of the verb to\nadd.  _prep_ is the preposition, or \"\" for none.  _method_ is the name\nof the method to call in the current object when the verb gets\ntriggered.  The verb is added to the end of the object's verb list,\nunless a verb with the same name and no preposition exists, in which\ncase it is inserted before that verb.  This is to prevent a verb with\nno preposition masking one with a preposition.\n\n", "chparents()" => "Function:  chparents()\n\nSyntax:    chparents( _list_ )\n\n\nChange the parents of the current object to those specified in _list_.\nAll variables and methods on the object itself remain intact, however\nany variables or methods it inherited from its old parents parents it\nmay not inherit from the new.  _list_ must be a non-empty list, and\nmust not cause any loops in the inheritance hierarchy (eg., an object\nmay not have itself or one of its children as a parent).  Any children\nof the current object will also have their inheritance changed by this\ncall, such that the new parents specified in the list will be ancestors\nof the children as well.\n\n", "kill" => "kill()", "toerr" => "toerr()", "things" => " \nThings\n======\n \nget: To pick up an object, type 'get <object>'.  Note that sometimes you won't be allowed to get an object that belongs to someone else.\ninventory: To see a list of objects you're carrying, type 'inventory', which can be abbreviated to 'i'.\ndrop:  To put an object you're carrying into the room you're in, type 'drop <object>'.\ngive:  To give something you're carrying to someone else, type 'give <thing> to <person>'.  For example, if I'm carrying a couch and I want to give it to Joe, I'd type 'give couch to Joe'.\nput:  To put something into a container, for example a marble into a bag, type 'put <thing> into <container>', e.g. 'put marble into bag'.\nremove:  To take something out of a container, type 'get/remove/take <thing> from <container>'.\nlie:  To lie down on furniture, type 'lie <furniture>'.  You can also 'lie down on <furniture>'.\nsit:  To sit on a piece of furniture, type 'sit <furniture>' or 'sit on <furniture>'.\nstand:  To get up from furniture you are sitting or lying on, type stand or stand up.\nlook: To look at an object, type 'look <thing>', to look into a container, type 'look in <container>'.\n \n", "root functions" => " \nRoot Functions\n==============\n \nadd_owner       add_parent      add_verb        announce        chparents", "@password" => "Command:    password <oldpasswd> to <newpasswd>\n            @password <oldpasswd> to <newpasswd>\n\nChanges your password.  You must specify your old password, <oldpasswd>,\nas well as your new password, <newpasswd>.  Passwords in COOLMUD are stored\nin encrypted form.\n\nSee also:   \n", "@shout" => "Command:    @shout <message>\n\nSend <message> to all players on the mud.\n\nSee also:   say, \", page\n", "@find" => "Command:    @find [ <string> ]\n\nShow all objects you own, or all objects you own which match <string>.\n\nSee also:   \n", "writelog" => "writelog()", "unlock()" => "Function:  unlock()\n\nSyntax:    unlock( _str_ )\n\n\nRemove the lock named _str_ from the current object.  If any execution\nthreads are waiting for this lock to be removed, they will execute.\n\n", "decompile()" => "Function:  decompile()\n\nSyntax:    decompile()\n\n\nDecompiles the entire current object back to source.  Returns a string,\ncontaining embedded newlines containing the source for the object.\nVariables are shown auto-initialized to their current values.  This\nfunction can be *very* CPU-intensive, if the object is large.\n\n", "inventory" => "Command:    inv\n     inventory\n\nShows the contents of your inventory.\n\nSee also:   look\n", "padl()" => " \nFunction:  #1.padl()\n \nSyntax:    padl( str, length, [padchar] )\n \nPads str into the appropriate length using padchar, with str left justified in the resulting string.\nPadchar defaults to \" \".\n \n See also: pad, padc.\n", "communication" => " \nCommunication\n=============\n \nThere are three other primary means besides talking to communicate with others on the MUD, posing, paging and whispering.\n \npose: Posing is a means of letting people know how you are feeling or standing or giving them information about body language.  For example, to wave to someone you might type 'pose waves to Shar.', whereupon, assuming your name was Joe, everyone in the room would see 'Joe waves to Shar.'.  Like say, pose has a short form, :, which works the same way.  In either case, if the first character of the message you are posing is a :, the initial space will be remove, so '::'s sad.' would produce 'Joe's sad'.\npage:  To let someone know where you are and that you are looking for them, just type 'page <person>'.  To send someone a particular message, type 'page <person> with <message>'.  Note that the person can be anywhere on the MUD.\nwhisper:  To communicate with others in the same room privately, use 'whisper <stuff> to <player>'.\n\n", "help" => "Command:    help [ <topic> ]\n\nGet some helpful information on a given topic.  The help system is\ncurrently simply a collection of text files which the author of the\ncoolmud universe has cobbled together, so help may not be available on\nspecific object functions.\n\nSee also:\n", "news" => "Command:    news [ <topic> ]\n\nGet some up-to-date information on a given topic.  If no topic is\ngiven, current mud news is given.  The news system is currently simply\na collection of text files which the author of the coolmud universe is\nbarely able to keep relevant.  Cope.\n\nSee also:   help\n", "topics" => " \nTopics\n======\n \nediting:     A how-to on variable and method editing.\npermissions: A description of how the permission system works.\n \n", "permission commands" => "permissions commands", "wizards" => "Command:    wizards\n\nShows the current list of wizards.  You don't want to be one, trust me.\n\nSee also:   who, rwho\n", "can_read" => "can_read()", "@addparent" => "Command:    @addparent <object1> to <object2>\n\nAdd <object1> to the list of parents of <object2>.  You must own <object2>.\nYou must own <object1> or <object1> must be public.\n\nSee also:   @rmparent, @mutate\n", "remove" => " \nCommand:    remove/get/take <object> from/in <container>\n \nRemove an object from inside a container.\n \nSee also:   get, drop, put\n\n", "@decompile" => "Command:    @decompile <object>\n\nDecompile the object <object> back into readable source form.  This lists\nall variables (with initial values), verbs, and methods of the object.\nWarning:  this can be quite large, especially for objects such as $player.\n\nSee also:   @list\n", "listassign()" => "Function:  listassign()\n\nSyntax:    listassign( _list_ , _value_ ,  _pos_ )\n\n\nReplaces element at position _pos_ in _list_ with _value_.  Returns the\nnew list.\n\n", "servers()" => "Function:  servers()\n\nSyntax:    servers()\n\n\nReturns a list corresponding to the system object (#0) at each remote\nserver (eg., #0@remotemud}, { #0@localmud, etc).\n\n", "toobj()" => "Function:  toobj()\n\nSyntax:    toobj( _var_ )\n\n\nConvert a num, string, or error value into an object ID value.  Numbers\nare converted by using the number as the object ID portion of the new\nvalue, and the local server for the server ID portion.  Strings are\nparsed, the same way  itself parses:  #3 or #3@foomud syntax.  Errors\nare converted by using the internal ID of the error as the object ID\nportion, and the local server for the server ID portion.\n\n", "tonum()" => "Function:  tonum()\n\nSyntax:    tonum( _var_ )\n\n\nConvert an obj, string, or error value into a numeric value.  Object\nvalues are converted by using the object ID portion as the new value.\nStrings are parsed like the UNIX function atoi().  Error values return\nthe internal ID of the error (which isn't much use except to trivia\naddicts).\n\n", "rm_var()" => "Function:  rm_var()\n\nSyntax:    rm_var( _str_ )\n\n\nRemove the variable (property) named _str_ from the current object.\n\n", "objsize()" => "Function:  objsize()\n\nSyntax:    objsize()\n\n\nReturns the size, on disc, of the current object.  This reflects the\nideal size, and not the actual amount of memory or disc consumed by the\nobjecct, which are subject to malloc() tax, dbm tax, etc.\n\n", "@program" => "Command:    @program [ <method> on <object> ]\n\nWith no arguments, the @program command accepts code for 1 or more COOL\nobjects.  With arguments, it reprograms the method <method> on <object>.\nCode is accepted until a single line containing \".\" is entered.  If\n<method> does not yet exist on <object>, it will be created.\n\nSee also:   @list, @methods, @rmmethod, compile()\n"];
+  obj  home = #13;
+
+
+endobject
+object #16
+  parents #4;
+
+  list contents = {};
+  str  name = "Generic News Object";
+  list owners = {#11};
+  num  public = 1;
+  obj  location = #6;
+  map  news_list = ["" => "No news defined!"];
+  obj  home = #13;
+
+  verb "@setnews" : "to" = setnews;
+  verb "@listnews" = listnews;
+  verb "edit_news" = edit_news;
+  verb "rename_news" = rename_news;
+
+  method listnews
+    if (!this.can_read("news_list", caller))
+      raise E_PERM;
+    else
+      player.tell(news_list[args[2]]);
+    endif
+  endmethod
+
+  method rename_news
+    player.rename(args[1], "news_list " + args[2]);
+  endmethod
+
+  method edit_news
+    player.edit_var_cmd(args[1], "news_list " + args[2], "on", tostr(this));
+  endmethod
+
+  method setnews
+    if (!this.can_write("news_list", caller))
+      raise E_PERM;
+    else
+      news_list[args[2]] = args[4];
+      player.tell("Set news  for topic " + tostr(args[2]) + " to " + tostr(args[4]));
+    endif
+  endmethod
+
+  method news
+    var last, cur;
+    ignore E_MAPNF;
+    cur = news_list[args[1]];
+    while (cur)
+      last = cur;
+      cur = news_list[cur];
+    endwhile
+    return last;
+  endmethod
+
+endobject
+object #17
+  parents #16;
+
+  list contents = {};
+  str  name = "Global News Object";
+  list owners = {#11};
+  obj  location = #11;
+  map  news_list = ["" => "intro", "oldfeatures1" => "5 Mar:  $furniture (in cooperation with $room) now lists you as\n        \"sitting in the ...\" next to the room name.  you can also only\n       sit on one piece of furniture at a time.\n\n    all online command should now be documented, at least briefly.\n        online documentation for all functions has been massaged from\n the latex manual.\n\n6 Mar:  sleep()'ing for 1 second or more will allow a task to run\n        indefinitely (the recursion and maximum cpu limits will reset).\n       so to do something ongoing, use:\n\n    method foo\n        while(1)\n         ...\n           sleep(1);\n          endwhile\n  endmethod\n\n   WARNING:  don't sleep() in a task that hasn't been at()'ed!  this\n     will cause the mud to totally ignore your input.  (i hope to\n  prevent this in future server versions..)\n\n   so to initiate the above safely, do:  at (0) object.foo; endat\n", "oldfeatures2" => "10 Mar:  there is now a splice operator, @.  so any moo programmers out\n        there should be happier.  \n  the @list command now takes some flags:\n     -n       don't number lines\n   -b       full (pedantic) bracketing\n   -i<num>  indent code by <num> spaces\n10 Mar:         the networking code should be a bit more reliable.\n  the command on $network_utils has been changed to \"finger\"\n    (from \"netfinger\").  if the username contains no @, the\n       user on the mud with that name is fingered, otherwise a\n       \"real\" network finger is done.\n\n", "features" => "May 13, 1998: Added aliases to exits and players.\n \nThe following was entered May 4, 1998, mostly done over the previous few weeks.\n \nRan the server through purify.  Damn, that fixed a lot of bugs.  Much, much, much less prone to crashes now.\nMoved all the help, news and the connection message into the database, because having them in flatfiles that I had to leave the mud to edit bothered me.\nAdded a new built-in function, echon(), which is just like echo except that it doesn't stick a newline at the end.\nAdded a _large_ suite of editing commandds for in-place (well, simulated in-place) editing of variables and methods.  Damn, it makes stuff easier.  As of this writing, help for these is not yet written, but it shouldn't be long.\n\n", "oldfeatures" => "5 Mar:  $furniture (in cooperation with $room) now lists you as\n        \"sitting in the ...\" next to the room name.  you can also only\n       sit on one piece of furniture at a time.\n\n    all online command should now be documented, at least briefly.\n        online documentation for all functions has been massaged from\n the latex manual.\n\n6 Mar:  sleep()'ing for 1 second or more will allow a task to run\n        indefinitely (the recursion and maximum cpu limits will reset).\n       so to do something ongoing, use:\n\n    method foo\n        while(1)\n         ...\n           sleep(1);\n          endwhile\n  endmethod\n\n   WARNING:  don't sleep() in a task that hasn't been at()'ed!  this\n     will cause the mud to totally ignore your input.  (i hope to\n  prevent this in future server versions..)\n\n   so to initiate the above safely, do:  at (0) object.foo; endat\n", "intro" => "This is COOLMUD v2.2.2alpha2, a distributed, multi-user, object-oriented,\nprogrammable worldbuilding environment.\n \nNews lists information on server and core object updates and new features, as well as news about recent events on this server.\nCurrent items of news:\n\n    features: Most recent list of new features.\n    oldfeatures1: Least recent list of new features.\n    oldfeatures2: Sligtly more recent list of new features.\n \n"];
+  obj  home = #13;
+
+
+endobject
+object #18
+  parents #4;
+
+  str  ositfailmsg = "%n tries to sit on the couch, but then realizes %s's already sitting on it!";
+  str  ositmsg = "%n sits on the couch.";
+  list contents = {};
+  num  sit = 1;
+  list liers = {};
+  str  sitmsg = "You sit on the couch.";
+  str  name = "Generic Furniture";
+  num  lie = 1;
+  str  oliemsg = "%n lies on the bed.";
+  list owners = {#11};
+  str  liemsg = "You lie down on the couch.";
+  str  oliefailmsg = "%n tries to lie on the bed, but is repelled by some mysterious force.";
+  list sitters = {};
+  obj  location = #13;
+  str  subname = "lounging on the bed";
+  str  standmsg = "You stand up from the couch.";
+  obj  home = #13;
+  str  ostandmsg = "%n stands up from the couch.";
+
+  verb "stand" : "up up_from" = stand_verb;
+  verb "stand" = stand_verb;
+  verb "sit" : "on down_on" = sit_verb;
+  verb "sit" = sit_verb;
+  verb "lie" : "on down_on" = lie;
+  verb "lie" = lie;
+
+  method stand_verb
+    if (args[2] && args[2] != "up")
+      return 1;
+    elseif (!(player in sitters) && !(player in liers))
+      return 1;
+    else
+      if (player in sitters)
+        sitters = sitters - player;
+      elseif (player in liers)
+        liers = liers - player;
+      endif
+      player.set_sublocation(#-1);
+      player.tell(standmsg);
+      location.announce(player.psub(ostandmsg), {player});
+    endif
+  endmethod
+
+  method event_exit
+    var dummy;
+    if (args[1] in sitters)
+      dummy = args[1].tell("[Standing up from " + this.dname + " first.]");
+      location.announce(player.name + " stands up from " + this.dname + " suddenly.");
+      player.set_sublocation(#-1);
+      sitters = sitters - args[1];
+    endif
+  endmethod
+
+  method subremove
+    player.tell("[Standing up from " + this.name + " first.]");
+    location.announce(player.psub(ostandmsg), {player});
+    sitters = sitters - player;
+    player.set_sublocation(#-1);
+  endmethod
+
+  method lie
+    if (!lie)
+      player.tell("You can't lie down on that!");
+    endif
+    if (args[3])
+      if (!this.match(args[4]))
+        return 1;
+      endif
+    else
+      if (!this.match(args[2]))
+        return 1;
+      endif
+    endif
+    if (player in liers || player.sublocation == this)
+      player.tell("You're already lying on it!");
+      location.announce(player.psub(oliefailmsg), {player});
+      return 0;
+    endif
+    if (player.sublocation != #-1)
+      player.sublocation.subremove(player);
+    endif
+    liers = liers + player;
+    player.set_sublocation(this);
+    player.tell(liemsg);
+    location.announce(player.psub(oliemsg), {player});
+  endmethod
+
+  method sdesc
+    var txt;
+    txt = "You see " + this.iname + " here";
+    if (sitters)
+      txt = txt + ", with " + this.english_list(sitters) + " sitting on it";
+      if (liers)
+        txt = txt + ", and " + this.english_list(liers) + " lying on it";
+      endif
+    elseif (liers)
+      txt = txt + ", with " + this.english_list(liers) + " lying on it";
+    endif
+    txt = txt + ".";
+    return txt;
+  endmethod
+
+  method subname
+    return "sitting on " + this.dname;
+  endmethod
+
+  method look
+    pass();
+    if (!sitters)
+      player.tell("No-one is sitting on " + this.dname + " at the moment.");
+    elseif (lengthof(sitters) > 1)
+      player.tell(this.english_list(sitters) + " are sitting on " + this.dname + ".");
+    else
+      player.tell(sitters[1].name + " is sitting on " + this.dname + ", all alone.");
+    endif
+    if (!liers)
+      player.tell("No-one is lying on " + this.dname + " at the moment.");
+    elseif (lengthof(liers) > 1)
+      player.tell(this.english_list(liers) + " are lying on " + this.dname + ".");
+    else
+      player.tell(liers[1].name + " is lying on " + this.dname + ", all alone.");
+    endif
+  endmethod
+
+  method sit_verb
+    if (!sit)
+      player.tell("You can't sit down on that!");
+    endif
+    if (args[3] && !this.match(args[4]))
+      return 1;
+    elseif (!args[3] && !this.match(args[2]))
+      return 1;
+    elseif (player in sitters || player.sublocation == this)
+      player.tell("You're already sitting on it!");
+      location.announce(player.psub(ositfailmsg), {player});
+      return 0;
+    endif
+    if (player.sublocation != #-1)
+      player.sublocation.subremove(player);
+    endif
+    sitters = sitters + player;
+    player.set_sublocation(this);
+    player.tell(sitmsg);
+    location.announce(player.psub(ositmsg), {player});
+  endmethod
+
+endobject

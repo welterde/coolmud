@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+
+$started = 0;
+while(<>) {
+    if (/\\subsubsection{\\func (.*)\((.*)\)}/) {
+	if ($started) {
+	} else {
+	    $started = 1;
+	}
+	$name = $1;
+	$args = $2;
+	$name =~ s/\\//;
+	$args =~ s/{\\funcarg(\W*)(\S*)([^}]*)}/$1_$2_$3/g;
+	$args =~ s/\$//g;
+	print "$name()\n";
+    } elsif (/\\section{/) {
+	$started = 0;
+    } elsif (/\\subsection{/) {
+	$started = 0;
+    } elsif (/\\subsubsection{/) {
+	$started = 0;
+    } elsif (/\\begin{verbatim|description}/) {
+    } elsif (/\\end{verbatim}/) {
+    } elsif ($started) {
+	s/\\verb\+([^\+]*)\+/$1/g;
+	s/\\bf {(.*)}/$1/g;
+	s/{\\tt (.*)}/$1/g;
+	s/\\item \[(.*)\]/\n_$1_      /g;
+	s/\\ldots/.../g;
+	s/{\\keyword (.*)}/$1/g;
+	s/{\\em (.*)}/\*$1\*/g;
+	s/{\\funcarg\s*(\S*)\s*}/_$1_/g;
+	s/{\\func\s*(\S*)\s*}/$1/g;
+	s/\\(begin|end){(.*)}//g;
+	s/\\[a-zA-Z]*//g;
+    }
+}

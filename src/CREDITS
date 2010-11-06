@@ -1,0 +1,34 @@
+COOLMUD may have been written mostly by me, but I was greatly influenced
+by a number of people, and wish to thank them heartily for their ideas
+and inspiration:
+
+James Aspnes, author of TinyMUD.
+You are the man!  Without you, I probably wouldn't have gotten into this
+whole crazy mess.  TinyMUD was a most elegant hack, and continues to
+influence MUD design to this day.  Also thanks for the TinyMUD network
+code, of which traces may be found in COOLMUD.
+
+Marcus J. Ranum, author of UberMUD and UnterMUD
+Your USENET speculations when designing UberMUD certainly influenced
+the direction that MOO took, and hence COOLMUD.  Also, of course, the
+cacheing and database layer of COOLMUD came from UnterMUD.  I may not
+like UnterMUD's interface, but you are a database god.  Your code is
+hard, fast and ruthless.
+
+Greg Hudson, author of TinyFugue, VaporTalk and ColdMUD
+Internet boy wonder (hope MIT hasn't eaten you alive).  For getting
+LRUJ inheritance right (hey, it's a topological sort after all!), and
+for the idea of generation numbers in object searching.
+
+Ue-Li Pen, PhD student at Princeton
+An old and dear friend, his mention of object-oriented programming
+as an approach to distributed applications was an idea that once it
+worked its way into my head wouldn't leave me alone.
+
+Pavel Curtis, author of LambdaMOO
+Some of the control structures you designed for MOO found their way
+into COOLMUD, much to my surprise.  And networking primitives, (should
+they ever be finished) although they will probably bear little
+resemblance to LambdaMOO's, were inspired by their implementation
+in LambdaMOO.  I like to think that together we have advanced the
+state of the art in MUD server design a little.

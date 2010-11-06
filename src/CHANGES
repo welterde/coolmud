@@ -1,0 +1,19 @@
+This is version 2.2.0 of COOLMUD.  This file lists changes since version
+2.1.5.  Quite a few new features have been added in this version, so
+this should be considered a beta release.  For stability, you should
+probably stick to v2.1.5.
+
+COOLMUD is covered under the GNU General Public License.  Those
+portions of the code not written by me (Stephen White) are covered
+under the copyrights of those authors.  COOLMUD is not GNU software,
+or supported by the Free Software Foundation, it just has the same
+license.
+
+CHANGES TO THE DISTRIBUTION
+===========================
+
+CHANGES TO THE STARTUP DATABASE
+===============================
+o   SYS_OBJ.create_player and SYS_OBJ.connect_player now actually do
+    the creation and connection of players, and are called by the
+    new method SYS_OBJ.parse.

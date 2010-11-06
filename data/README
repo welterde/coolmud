@@ -1,0 +1,16 @@
+This directory holds the COOL database sources and holds the
+'cm' executable and database files, when made.
+
+
+cm.core		- Core objects
+west.cl		- room and exit for the western database, plus some toys
+east.cl		- room and exit for the eastern database, plus some toys
+boot.clh	- #defines for objects in boot.cl
+common.clh	- #defines for objects in east.cl and west.cl
+Makefile	- creates databases west.db and east.db from the
+		  above source files.
+restart		- a shell script for restarting the MUD.
+shutdown	- a shell script for shutting down the MUD.
+checkpoint	- a shell script for making checkpoints of a database
+help_in		- a shell script for converting things for input
+make_release	- a shell script to extract core objects from the db

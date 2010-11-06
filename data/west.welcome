@@ -1,0 +1,11 @@
+
+
+*** WELCOME TO COOLMUD WEST! ***
+
+COOLMUD created by Stephen White.
+
+Use "create <name> <password>" to create a new character.
+Use "connect <name> <password>" to connect to an existing character.
+Use "who" or "@who" to get a list of users currently connected.
+Use "quit" or "@quit" to disconnect without connecting.
+

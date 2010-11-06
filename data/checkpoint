@@ -1,0 +1,29 @@
+#!/bin/sh
+# usage:  checkpoint <dbaseprefix>
+# eg.,   checkpoint west
+
+cd /u1/rlpowell/csc/cm/data
+CPDIR=/u1/rlpowell/csc/cm/checkpoints
+
+# get the number of the last checkpoint
+num=`cat $CPDIR/$1.last_checkpoint`
+
+# increment by one
+num=`expr $num + 1`
+
+# make sure we don't write over an existing one by accident
+while ( test -r $CPDIR/$1.flatfile.$num -o -r $CPDIR/$1.flatfile.$num.gz ) do
+   num=`expr $num + 1`
+done
+
+echo $num > $CPDIR/$1.last_checkpoint
+
+echo "`date`:  *** shutting down mud $1 for flatfile" >> $CPDIR/$1.log 2>&1
+./shutdownmud $1
+sleep 5
+echo "`date`:  *** writing flatfile to $1.flatfile.$num" >> $CPDIR/$1.log 2>&1
+./cm $1 -d $CPDIR/$1.flatfile.$num >> $CPDIR/$1.log 2>&1
+gzip -9 $CPDIR/$1.flatfile.$num
+sleep 5
+echo "`date`:  *** restarting mud $1" >> $CPDIR/$1.log 2>&1
+./restart $1

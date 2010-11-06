@@ -1,0 +1,19 @@
+#define NOTHING #-1
+
+#define SYS_OBJ #0
+#define ROOT_OBJ #1
+
+#define LOCATED_OBJ #2
+#define DESCRIBED_OBJ #3
+
+#define THING #4
+#define CONTAINER #5
+#define ROOM #6
+#define EXIT #7
+#define PLAYER #8
+#define BUILDER #9
+#define PROGRAMMER #10
+
+#define WIZARD #11
+#define NETWORK_TOOLS #12
+#define PLAYER_START #13

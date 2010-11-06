@@ -1,0 +1,8 @@
+#!/bin/sh
+
+for file in `ls -1 online/help`
+do
+    topic="`echo $file | sed s/\.txt//`"
+    text=`mud_in online/help/$file`
+    echo "@sethelp $topic to $text"
+done

@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+
+$count = 0;
+
+while(<>) {
+  chop;
+  printf "%-15s", $_;
+  $count++;
+  if (($count % 5) == 0) {
+	print "\n";
+  }
+}
